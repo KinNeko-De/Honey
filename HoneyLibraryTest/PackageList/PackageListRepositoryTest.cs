@@ -1,0 +1,575 @@
+﻿using System;
+using System.Diagnostics;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Xml.Linq;
+using HoneyLibrary.PackageLists;
+using HoneyLibraryTest.PackageList.TestData;
+using NUnit.Framework;
+
+namespace HoneyLibraryTest.PackageList
+{
+	public class PackageListRepositoryTest
+	{
+		private string testPath;
+
+		[SetUp]
+		public void CreateTestDirectory()
+		{
+			testPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+			Directory.CreateDirectory(testPath);
+		}
+
+		[TearDown]
+		public void DeleteTestDirectory()
+		{
+			Directory.Delete(testPath, true);
+		}
+
+		#region TestData
+		private PackageListRepository CreateSystemUnderTest()
+		{
+			return new PackageListRepository(new PathInstallLocation(testPath));
+		}
+
+		private void CreatePackageList(string content)
+		{
+			File.WriteAllText(TestPackageListFileName(), content);
+		}
+
+		private XDocument ReadPackageList()
+		{
+			return XDocument.Load(TestPackageListFileName());
+		}
+
+		private string TestPackageListFileName()
+		{
+			return Path.Combine(testPath, PackageListRepository.PackageListFileName);
+		}
+		
+		private PackageBuilder CreateLockedTestPackage()
+		{
+			var inputPackageId = "mytestpackage";
+			var inputPackageVersion = new Version(1, 2, 3, 4).ToString();
+			var inputLockedByAction = "TestAction";
+			var inputLockedByProcess = "1234";
+			var inputCreated = new DateTimeOffset(2019, 1, 1, 1, 1, 1, TimeSpan.FromHours(2));
+			var inputLastUpdated = new DateTimeOffset(2019, 1, 2, 1, 1, 1, TimeSpan.FromHours(2));
+
+			var package = new PackageBuilder()
+				.SetPackageId(inputPackageId)
+				.SetPackageVersion(inputPackageVersion)
+				.SetLockedByAction(inputLockedByAction)
+				.SetLockedByProcess(inputLockedByProcess)
+				.SetCreated(inputCreated)
+				.SetLastUpdated(inputLastUpdated);
+
+			return package;
+		}
+
+		private PackageBuilder CreateNonLockedTestPackage()
+		{
+			var inputPackageId = "mytestpackage";
+			var inputPackageVersion = new Version(1, 2, 3, 4).ToString();
+			var inputCreated = new DateTimeOffset(2019, 1, 1, 1, 1, 1, TimeSpan.FromHours(2));
+
+			var package = new PackageBuilder()
+				.SetPackageId(inputPackageId)
+				.SetPackageVersion(inputPackageVersion)
+				.SetCreated(inputCreated);
+
+			return package;
+		}
+		#endregion TestData
+
+		#region GetPackageInfo
+		[Test]
+		public void GetPackageInfo_NoPackageListExists()
+		{
+			var sut = CreateSystemUnderTest();
+
+			var packageInfo = sut.GetPackageInfo("mytestpackage", ListMode.LimitOutput);
+
+			Assert.That(packageInfo, Is.Null);
+		}
+
+		[Test]
+		public void GetPackageInfo_PackageListExists_ListModeLimitOutput()
+		{
+			ListMode listMode = ListMode.LimitOutput;
+
+			var package = CreateLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			var packageInfo = sut.GetPackageInfo(package.PackageId, listMode);
+
+			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfo.PackageId, Is.EqualTo(package.PackageId));
+			Assert.That(packageInfo.PackageVersion, Is.EqualTo(package.PackageVersion));
+			Assert.That(packageInfo.LockedByAction, Is.Null);
+			Assert.That(packageInfo.LockedByProcess, Is.Null);
+			Assert.That(packageInfo.Created, Is.Null);
+			Assert.That(packageInfo.LastUpdated, Is.Null);
+		}
+
+		[Test]
+		public void GetPackageInfo_PackageListExists_ListModeFull()
+		{
+			ListMode listMode = ListMode.Full;
+
+			var package = CreateLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			var packageInfo = sut.GetPackageInfo(package.PackageId, listMode);
+
+			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfo.PackageId, Is.EqualTo(package.PackageId));
+			Assert.That(packageInfo.PackageVersion, Is.EqualTo(package.PackageVersion));
+			Assert.That(packageInfo.LockedByAction, Is.EqualTo(package.PackageLockedByAction));
+			Assert.That(packageInfo.LockedByProcess, Is.EqualTo(package.PackageLockedByProcess));
+			Assert.That(packageInfo.Created, Is.EqualTo(package.PackageCreated));
+			Assert.That(packageInfo.LastUpdated, Is.EqualTo(package.PackageLastUpdated));
+		}
+
+		[Test]
+		public void GetPackageInfo_LastUpdateIsNull()
+		{
+			Nullable<DateTimeOffset> lastUpdated = null;
+
+			ListMode listMode = ListMode.Full;
+
+			var package = CreateLockedTestPackage();
+			package.SetLastUpdated(lastUpdated);
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			var packageInfo = sut.GetPackageInfo(package.PackageId, listMode);
+
+			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfo.LastUpdated, Is.EqualTo(lastUpdated));
+		}
+		#endregion GetPackageInfo
+
+		#region StartActionOnPackage
+		[Test]
+		public void StartActionOnPackage_NoPackageListExists()
+		{
+			string packageId = "mytestpackage";
+			Version packageVersion = new Version(1, 2, 3);
+
+			var sut = CreateSystemUnderTest();
+
+			sut.StartActionOnPackage(packageId, packageVersion);
+
+			var packageInfo = sut.GetPackageInfo(packageId, ListMode.Full);
+
+			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfo.PackageId, Is.EqualTo(packageId));
+			Assert.That(packageInfo.PackageVersion, Is.EqualTo(packageVersion.ToString()));
+			Assert.That(packageInfo.LockedByAction, Is.Not.Null);
+			Assert.That(packageInfo.LockedByProcess, Is.EqualTo(Process.GetCurrentProcess().Id.ToString()));
+			Assert.That(packageInfo.Created, Is.Not.Null);
+			Assert.That(packageInfo.LastUpdated, Is.Null);
+		}
+
+		[Test]
+		public void StartActionOnPackage_PackageListExists()
+		{
+			var package = CreateNonLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+
+			sut.StartActionOnPackage(package.PackageId, new Version(package.PackageVersion));
+
+			var packageInfo = sut.GetPackageInfo(package.PackageId, ListMode.Full);
+
+			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfo.PackageId, Is.EqualTo(package.PackageId));
+			Assert.That(packageInfo.PackageVersion, Is.EqualTo(package.PackageVersion));
+			Assert.That(packageInfo.LockedByAction, Is.Not.Null);
+			Assert.That(packageInfo.LockedByProcess, Is.EqualTo(Process.GetCurrentProcess().Id.ToString()));
+			Assert.That(packageInfo.Created, Is.Not.Null);
+			Assert.That(packageInfo.LastUpdated, Is.Not.Null);
+		}
+		#endregion StartActionOnPackage
+
+		#region EndActionOnPackage
+		[Test]
+		public void EndActionOnPackage_NoPackageListExists()
+		{
+			string packageId = "mytestpackage";
+			Version packageVersion = new Version(1, 2, 3);
+
+			var sut = CreateSystemUnderTest();
+
+			sut.EndActionOnPackage(packageId, packageVersion);
+
+			var packageInfo = sut.GetPackageInfo(packageId, ListMode.Full);
+
+			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfo.PackageId, Is.EqualTo(packageId));
+			Assert.That(packageInfo.PackageVersion, Is.EqualTo(packageVersion.ToString()));
+			Assert.That(packageInfo.LockedByAction, Is.EqualTo(string.Empty));
+			Assert.That(packageInfo.LockedByProcess, Is.EqualTo(string.Empty));
+			Assert.That(packageInfo.Created, Is.Not.Null);
+		}
+
+		[Test]
+		public void EndActionOnPackage_PackageListExists()
+		{
+			var package = CreateNonLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+
+			sut.EndActionOnPackage(package.PackageId, new Version(package.PackageVersion));
+
+			var packageInfo = sut.GetPackageInfo(package.PackageId, ListMode.Full);
+
+			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfo.PackageId, Is.EqualTo(package.PackageId));
+			Assert.That(packageInfo.PackageVersion, Is.EqualTo(package.PackageVersion));
+			Assert.That(packageInfo.LockedByAction, Is.EqualTo(string.Empty));
+			Assert.That(packageInfo.LockedByProcess, Is.EqualTo(string.Empty));
+			Assert.That(packageInfo.Created, Is.Not.Null);
+			Assert.That(packageInfo.LastUpdated, Is.Not.Null);
+		}
+		#endregion EndActionOnPackage 
+
+		#region PackageIsLocked
+		[Test]
+		public void PackageIsLocked_CanBeListedByAnotherProcess()
+		{
+			var package = CreateLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+
+			var packageInfo = sut.GetPackageInfo(package.PackageId, ListMode.LimitOutput);
+
+			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfo.PackageId, Is.EqualTo(package.PackageId));
+		}
+
+		[Test]
+		public void PackageIsLocked_CanBeUnlockedBySameProcess()
+		{
+			string myTestPackageId = "myTestPackage";
+			Version myTestPackageVersion = new Version(1, 2, 3);
+
+			var sut = CreateSystemUnderTest();
+			sut.StartActionOnPackage(myTestPackageId, myTestPackageVersion);
+			sut.EndActionOnPackage(myTestPackageId, myTestPackageVersion);
+
+			Assert.Pass();
+		}
+
+		[Test]
+		public void PackageIsLocked_CanBeLockedBySameProcess()
+		{
+			string myTestPackageId = "myTestPackage";
+			Version myTestPackageVersion = new Version(1, 2, 3);
+
+			var sut = CreateSystemUnderTest();
+
+			sut.StartActionOnPackage(myTestPackageId, myTestPackageVersion);
+			sut.StartActionOnPackage(myTestPackageId, myTestPackageVersion);
+
+			Assert.Pass();
+		}
+
+		[Test]
+		public void PackageIsLocked_CanNotBeLockedByAnotherProcess()
+		{
+			var package = CreateLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+
+			var exception = Assert.Throws<InvalidOperationException>(() => sut.StartActionOnPackage(package.PackageId, new Version(package.PackageVersion)));
+			StringAssert.Contains(package.PackageId, exception.Message);
+			StringAssert.Contains(package.PackageLockedByProcess, exception.Message);
+			StringAssert.Contains(package.PackageLockedByAction, exception.Message);
+		}
+		#endregion PackageIsLocked
+
+		#region FileIsUsedByAnotherProcess ParallelBehavior
+		[Test]
+		public void FileIsUsedByAnotherProcess_FileIsLockedForWriteOperation_FileCanBeOpenedForGetPackageInfo()
+		{
+			var package = CreateNonLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			using (sut.OpenPackageListForWriteOperation())
+			{
+				sut.GetPackageInfo(package.PackageId, ListMode.LimitOutput);
+			};
+		}
+
+		[Test]
+		public void FileIsUsedByAnotherProcess_FileIsLockedForWriteOperation_FileCanNotBeOpenedForStartActionOnPackage()
+		{
+			var package = CreateNonLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			using (sut.OpenPackageListForWriteOperation())
+			{
+				var exception = Assert.Throws<PackageFileCanNotBeAccessedException>(() => sut.StartActionOnPackage(package.PackageId, new Version(package.PackageVersion)));
+				Assert.That(exception.InnerExceptions, Is.Not.Null);
+				Assert.That(exception.InnerExceptions.Count, Is.GreaterThan(2));
+				StringAssert.Contains(TestPackageListFileName(), exception.Message);
+			};
+		}
+
+		[Test]
+		public void FileIsUsedByAnotherProcess_FileIsLockedForWriteOperation_FileCanNotBeOpenedForEndActionOnPackage()
+		{
+			var package = CreateNonLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			using (sut.OpenPackageListForWriteOperation())
+			{
+				var exception = Assert.Throws<PackageFileCanNotBeAccessedException>(() => sut.EndActionOnPackage(package.PackageId, new Version(package.PackageVersion)));
+				Assert.That(exception.InnerExceptions, Is.Not.Null);
+				Assert.That(exception.InnerExceptions.Count, Is.GreaterThan(2));
+				StringAssert.Contains(TestPackageListFileName(), exception.Message);
+			};
+
+		}
+
+		[Test]
+		public async Task FileIsUsedByAnotherProcess_FileIsTemporaryLockedForWriteOperation_StartActionOnPackageRetries()
+		{
+			var package = CreateNonLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			using (var fileStream = sut.OpenPackageListForWriteOperation())
+			{
+				var task = Task.Run(() => sut.StartActionOnPackage(package.PackageId, new Version(package.PackageVersion)));
+				Thread.Sleep(1000);
+				fileStream.Close();
+
+				await task;
+			};
+
+			var packageInfo = sut.GetPackageInfo(package.PackageId, ListMode.Full);
+			Assert.That(packageInfo.LockedByProcess, Is.EqualTo(Process.GetCurrentProcess().Id.ToString()));
+		}
+
+		[Test]
+		public async Task FileIsUsedByAnotherProcess_FileIsTemporaryLockedForWriteOperation_EndActionOnPackageRetries()
+		{
+			var package = CreateNonLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			using (var fileStream = sut.OpenPackageListForWriteOperation())
+			{
+				var task = Task.Run(() => sut.EndActionOnPackage(package.PackageId, new Version(package.PackageVersion)));
+				Thread.Sleep(1000);
+				fileStream.Close();
+
+				await task;
+			};
+
+			var packageInfo = sut.GetPackageInfo(package.PackageId, ListMode.Full);
+			Assert.That(packageInfo.LockedByProcess, Is.Not.Null);
+		}
+
+		[Test]
+		public void FileIsUsedByAnotherProcess_FileIsLockedForWriteOperation_GetPackageInfoWorks()
+		{
+			var package = CreateNonLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			using (var fileStream = sut.OpenPackageListForWriteOperation())
+			{
+				var packageInfo = sut.GetPackageInfo(package.PackageId, ListMode.LimitOutput);
+				Assert.That(packageInfo, Is.Not.Null);
+			};
+		}
+
+		[Test]
+		public void FileIsUsedByAnotherProcess_FileIsLockedForReadOperation_StartActionOnPackageWorks()
+		{
+			var package = CreateNonLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			using (var fileStream = sut.OpenPackageListForReadOperation())
+			{
+				sut.StartActionOnPackage(package.PackageId, new Version(package.PackageVersion));
+			};
+
+			var packageInfo = sut.GetPackageInfo(package.PackageId, ListMode.Full);
+			Assert.That(packageInfo.LockedByProcess, Is.EqualTo(Process.GetCurrentProcess().Id.ToString()));
+		}
+
+		[Test]
+		public void FileIsUsedByAnotherProcess_FileIsLockedForReadOperation_EndActionOnPackageWork()
+		{
+			var package = CreateNonLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			using (var fileStream = sut.OpenPackageListForReadOperation())
+			{
+				sut.EndActionOnPackage(package.PackageId, new Version(package.PackageVersion));
+			};
+
+			var packageInfo = sut.GetPackageInfo(package.PackageId, ListMode.Full);
+			Assert.That(packageInfo.LastUpdated, Is.Not.Null);
+		}
+
+		[Test]
+		public void FileIsUsedByAnotherProcess_FileIsLockedForReadOperation_GetPackageInfoWorks()
+		{
+			var package = CreateNonLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			using (var fileStream = sut.OpenPackageListForReadOperation())
+			{
+				var packageInfo = sut.GetPackageInfo(package.PackageId, ListMode.LimitOutput);
+				Assert.That(packageInfo, Is.Not.Null);
+			};
+		}
+		#endregion  PackagesFileIsIsUsages ParallelBehaviorr
+
+		#region Migration
+		[Test]
+		public void Migration_StartActionOnPackage_PackageListIsMigratedAndVersionIsAddedIfNoVersionExists()
+		{
+			var expectedVersion = "1.0";
+
+			var sut = CreateSystemUnderTest();
+		
+			var previous = new PackagesBuilder().SetPackagesVersion(string.Empty).Build();
+			CreatePackageList(previous);
+
+			sut.StartActionOnPackage("mytestpackage", new Version(1, 2, 3));
+
+			var xmlDocument = ReadPackageList();
+			var version = xmlDocument.Element(HoneyLibrary.PackageLists.PackageList.XmlRoot).Attribute(HoneyLibrary.PackageLists.PackageList.XmlPackageVersion).Value;
+
+			Assert.That(version, Is.EqualTo(expectedVersion));
+		}
+
+		[Test]
+		public void Migration_StartActionOnPackage_PackageListIsNotMigratedAndVersionIsNotAddedIfVersionExists()
+		{
+			var expectedVersion = "myversion";
+
+			var sut = CreateSystemUnderTest();
+
+			var previous = new PackagesBuilder().SetPackagesVersion(expectedVersion).Build();
+			CreatePackageList(previous);
+
+			sut.StartActionOnPackage("mytestpackage", new Version(1, 2, 3));
+
+			var xmlDocument = ReadPackageList();
+			var version = xmlDocument.Element(HoneyLibrary.PackageLists.PackageList.XmlRoot).Attribute(HoneyLibrary.PackageLists.PackageList.XmlPackageVersion).Value;
+
+			Assert.That(version, Is.EqualTo(expectedVersion));
+		}
+
+		[Test]
+		public void Migration_EndActionOnPackage_PackageListIsMigratedAndVersionIsAddedIfNoVersionExists()
+		{
+			var expectedVersion = "1.0";
+
+			var sut = CreateSystemUnderTest();
+
+			var previous = new PackagesBuilder().SetPackagesVersion(string.Empty).Build();
+			CreatePackageList(previous);
+
+			sut.EndActionOnPackage("mytestpackage", new Version(1, 2, 3));
+
+			var xmlDocument = ReadPackageList();
+			var version = xmlDocument.Element(HoneyLibrary.PackageLists.PackageList.XmlRoot).Attribute(HoneyLibrary.PackageLists.PackageList.XmlPackageVersion).Value;
+
+			Assert.That(version, Is.EqualTo(expectedVersion));
+		}
+
+		[Test]
+		public void Migration_EndActionOnPackage_PackageListIsNotMigratedAndVersionIsNotAddedIfVersionExists()
+		{
+			var expectedVersion = "myversion";
+
+			var sut = CreateSystemUnderTest();
+
+			var previous = new PackagesBuilder().SetPackagesVersion(expectedVersion).Build();
+			CreatePackageList(previous);
+
+			sut.EndActionOnPackage("mytestpackage", new Version(1, 2, 3));
+
+			var xmlDocument = ReadPackageList();
+			var version = xmlDocument.Element(HoneyLibrary.PackageLists.PackageList.XmlRoot).Attribute(HoneyLibrary.PackageLists.PackageList.XmlPackageVersion).Value;
+
+			Assert.That(version, Is.EqualTo(expectedVersion));
+		}
+
+		[Test]
+		[Ignore("Remove Package is not not implemented :)")]
+		public void Migration_RemovePackage_PackageListIsMigratedAndVersionIsAddedIfNoVersionExists()
+		{
+			var expectedVersion = "1.0";
+
+			var sut = CreateSystemUnderTest();
+
+			var previous = new PackagesBuilder().SetPackagesVersion(string.Empty).Build();
+			CreatePackageList(previous);
+
+			sut.RemovePackage("mytestpackage");
+
+			var xmlDocument = ReadPackageList();
+			var version = xmlDocument.Element(HoneyLibrary.PackageLists.PackageList.XmlRoot).Attribute(HoneyLibrary.PackageLists.PackageList.XmlPackageVersion).Value;
+
+			Assert.That(version, Is.EqualTo(expectedVersion));
+		}
+
+		[Test]
+		public void Migration_RemovePackage_PackageListIsNotMigratedAndVersionIsNotAddedIfVersionExists()
+		{
+			var expectedVersion = "myversion";
+
+			var sut = CreateSystemUnderTest();
+
+			var previous = new PackagesBuilder().SetPackagesVersion(expectedVersion).Build();
+			CreatePackageList(previous);
+
+			sut.RemovePackage("mytestpackage");
+
+			var xmlDocument = ReadPackageList();
+			var version = xmlDocument.Element(HoneyLibrary.PackageLists.PackageList.XmlRoot).Attribute(HoneyLibrary.PackageLists.PackageList.XmlPackageVersion).Value;
+
+			Assert.That(version, Is.EqualTo(expectedVersion));
+		}
+		#endregion Migration
+	}
+}
