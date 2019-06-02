@@ -48,6 +48,7 @@
       <Component Id="ProductComponent" Guid="{E62D6451-D0A3-4B09-AF1C-8415AEBE0949}">
         <File Source="$(var.Honey.TargetPath)" Id="HoneyExecutableFile" KeyPath="yes" />
         <File Source="$(var.Honey.TargetDir)ZipArchiveExtensions.dll" Id="ZipArchiveExtensions"/>
+        <File Source="$(var.Honey.TargetDir)MyApplicationExample.dll" Id="MyApplicationExample"/>
         <File Source="$(var.Honey.TargetDir)log4net.dll" Id="Log4Net" />
         <File Source="$(var.HoneyLibrary.TargetPath)" Id="HoneyLibraryFile" />
         <Environment Id="SetEnvironment" Action="set" Name="Path" Part="last" Permanent="no" System="yes" Value="[HoneyFolder]"/>
