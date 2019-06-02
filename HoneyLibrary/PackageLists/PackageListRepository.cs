@@ -32,7 +32,7 @@ namespace HoneyLibrary.PackageLists
 			throw new NotImplementedException();
 		}
 
-		public IPackageInfo GetPackageInfo(string packageId, ListMode listMode)
+		public IPackageInfo GetPackageInfo(string packageId, ListMode listMode, MatchMode matchMode)
 		{
 			try
 			{
@@ -48,7 +48,7 @@ namespace HoneyLibrary.PackageLists
 						throw new InvalidOperationException($"Reading of package list failed: {e.Message}", e);
 					}
 
-					var packageListInfoElement = PackageList.FetchPackageListInfo(packageId, packageList);
+					var packageListInfoElement = PackageList.FetchPackageListInfo(packageId, packageList, matchMode);
 
 					return PackageList.ReadPackageInfo(packageListInfoElement, listMode);
 				}
@@ -82,7 +82,7 @@ namespace HoneyLibrary.PackageLists
 		{
 			WriteToPackageList(OpenPackageListForWriteOperation, (packageList) =>
 			{
-				XElement packageListInfoElement = PackageList.FetchPackageListInfo(packageId, packageList);
+				XElement packageListInfoElement = PackageList.FetchPackageListInfo(packageId, packageList, MatchMode.IdExact);
 				if (packageListInfoElement == null)
 				{
 					packageListInfoElement = PackageList.CreatePackageListInfo(packageId, version, action, processId, packageList);

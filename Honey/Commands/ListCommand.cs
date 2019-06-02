@@ -21,7 +21,7 @@ namespace Honey.Commands
 			// no logger needed..it needs 50-70ms
 
 			IPackageListRepository packageListRepository = new PackageListRepository(new HoneyInstallLocation());
-			IListController deploymentController = new ListController(packageListRepository);
+			IListController listController = new ListController(packageListRepository);
 			if(args.Length < 2)
 			{
 				throw new ArgumentException("Please add the specific id of the package you search", "packageId");
@@ -30,11 +30,14 @@ namespace Honey.Commands
 
 			// limitOutput is more for programms, programms can easy add arguments, dont bother people to do that
 			ListMode listMode = ListMode.Full;
+			// TODO implement correct parameter parsing here :)
+			MatchMode matchMode = MatchMode.IdContains;
+
 			if(args.Length > 2)
 			{
 				listMode = ListMode.LimitOutput;
 			}
-			var packageInfo = deploymentController.GetPackageInfo(packageId, listMode);
+			var packageInfo = listController.GetPackageInfo(packageId, listMode, matchMode);
 			if (packageInfo != null)
 			{
 				string output = null;

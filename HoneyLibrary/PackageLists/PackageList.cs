@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -97,14 +98,36 @@ namespace HoneyLibrary.PackageLists
 			return versionAttribute.Value;
 		}
 
-		internal static XElement FetchPackageListInfo(string packageId, XDocument packageList)
+		internal static XElement FetchPackageListInfo(string packageId, XDocument packageList, MatchMode matchMode)
 		{
-			IEnumerable<XElement> matchingPackageIds = packageList.Root.Elements(XmlPackage).Where(x => x.Element(XmlPackageId).Value == packageId);
+			Func<string, bool> matchFunction = GetMatchFunction(packageId, matchMode);
+
+			IEnumerable<XElement> matchingPackageIds = packageList.Root.Elements(XmlPackage).Where(x => matchFunction.Invoke(x.Element(XmlPackageId).Value));
+
 			if (matchingPackageIds.Count() > 1)
 			{
 				throw new InvalidOperationException($"Multiple entries of package id { packageId } were found in the package repository. This is not supported.");
 			}
 			return matchingPackageIds.SingleOrDefault();
+		}
+
+		private static Func<string, bool> GetMatchFunction(string packageId, MatchMode matchMode)
+		{
+			Func<string, bool> matchFuction;
+
+			switch (matchMode)
+			{
+				case MatchMode.IdExact:
+					matchFuction = new Func<string, bool>((xmlPackageId) => xmlPackageId == packageId);
+					break;
+				case MatchMode.IdContains:
+					matchFuction = new Func<string, bool>((xmlPackageId) => xmlPackageId.Contains(packageId));
+					break;
+				default:
+					throw new InvalidEnumArgumentException(nameof(matchMode), (int)matchMode, typeof(MatchMode));
+			}
+
+			return matchFuction;
 		}
 
 		internal static XElement CreatePackageListInfo(string packageId, Version version, string action, string processId, XDocument packageList)

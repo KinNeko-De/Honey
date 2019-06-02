@@ -12,7 +12,7 @@ namespace HoneyLibrary.PackageLists
 
         void EndActionOnPackage(string packageId, Version version);
 
-		IPackageInfo GetPackageInfo(string packageId, ListMode listMode);
+		IPackageInfo GetPackageInfo(string packageId, ListMode listMode, MatchMode matchMode);
 
 	}
 }

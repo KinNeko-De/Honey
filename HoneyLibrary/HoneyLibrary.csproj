@@ -50,6 +50,7 @@
     <Compile Include="DeploymentActivities\Files\FileDeploymentComponentStrategy.cs" />
     <Compile Include="DeploymentActivities\Files\FileUpgradeAction.cs" />
     <Compile Include="DeploymentActivities\Files\FileRemoveAction.cs" />
+    <Compile Include="PackageLists\MatchMode.cs" />
     <Compile Include="PackageLists\PackageFileCanNotBeAccessedException.cs" />
     <Compile Include="PackageDeployment\IDeploymentComponent.cs" />
     <Compile Include="PackageDeployment\IDeploymentComponentFactory.cs" />
