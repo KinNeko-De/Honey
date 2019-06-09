@@ -9,6 +9,6 @@ namespace HoneyLibrary.Controller
 {
 	public interface IListController
 	{
-		IPackageInfo GetPackageInfo(string packageId, ListMode listMode, MatchMode matchMode);
+		IReadOnlyCollection<IPackageInfo> GetPackageInfo(string searchPattern, ListMode listMode, MatchMode matchMode);
 	}
 }

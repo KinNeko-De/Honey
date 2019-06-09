@@ -12,7 +12,20 @@ namespace HoneyLibrary.PackageLists
 
         void EndActionOnPackage(string packageId, Version version);
 
-		IPackageInfo GetPackageInfo(string packageId, ListMode listMode, MatchMode matchMode);
+		/// <summary>
+		/// Queries the infos to installed packages 
+		/// </summary>
+		/// <param name="searchPattern">The searchPattern, not relevant if you want to query all</param>
+		/// <param name="listMode"></param>
+		/// <param name="matchMode"></param>
+		/// <returns></returns>
+		IReadOnlyCollection<IPackageInfo> GetPackageInfo(string searchPattern, ListMode listMode, MatchMode matchMode);
 
+		/// <summary>
+		/// Fetches the info for a single package id for upgrading aspects.
+		/// </summary>
+		/// <param name="packageId">package id you want to edit</param>
+		/// <returns>the package info if there exists one entry, null if no entry exist, and exception if contains more that one entry with that id</returns>
+		IPackageInfo GetSinglePackageInfo(string packageId);
 	}
 }

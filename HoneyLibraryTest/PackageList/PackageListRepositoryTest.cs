@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -82,7 +83,7 @@ namespace HoneyLibraryTest.PackageList
 		}
 		#endregion TestData
 
-		#region GetPackageInfo
+		#region GetPackageInfo GetSinglePackageInfo
 		[Test]
 		public void GetPackageInfo_NoPackageListExists()
 		{
@@ -91,6 +92,35 @@ namespace HoneyLibraryTest.PackageList
 			var packageInfo = sut.GetPackageInfo("mytestpackage", ListMode.LimitOutput, MatchMode.IdExact);
 
 			Assert.That(packageInfo, Is.Null);
+		}
+
+		[Test]
+		public void GetSinglePackageInfo_NoPackageListExists()
+		{
+			var sut = CreateSystemUnderTest();
+
+			var packageInfo = sut.GetSinglePackageInfo("mytestpackage");
+
+			Assert.That(packageInfo, Is.Null);
+		}
+
+		[Test]
+		public void GetSinglePackageInfo_PackageListExists_ListModeLimitOutput()
+		{
+			var package = CreateLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			var packageInfo = sut.GetSinglePackageInfo(package.PackageId);
+
+			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfo.PackageId, Is.EqualTo(package.PackageId));
+			Assert.That(packageInfo.PackageVersion, Is.EqualTo(package.PackageVersion));
+			Assert.That(packageInfo.LockedByAction, Is.Null);
+			Assert.That(packageInfo.LockedByProcess, Is.Null);
+			Assert.That(packageInfo.Created, Is.Null);
+			Assert.That(packageInfo.LastUpdated, Is.Null);
 		}
 
 		[Test]
@@ -103,15 +133,36 @@ namespace HoneyLibraryTest.PackageList
 			CreatePackageList(packages);
 
 			var sut = CreateSystemUnderTest();
-			var packageInfo = sut.GetPackageInfo(package.PackageId, listMode, MatchMode.IdExact);
+			var packageInfos = sut.GetPackageInfo(package.PackageId, listMode, MatchMode.IdExact);
 
-			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos.Count, Is.EqualTo(1));
+			var packageInfo = packageInfos.ElementAt(0);
 			Assert.That(packageInfo.PackageId, Is.EqualTo(package.PackageId));
 			Assert.That(packageInfo.PackageVersion, Is.EqualTo(package.PackageVersion));
 			Assert.That(packageInfo.LockedByAction, Is.Null);
 			Assert.That(packageInfo.LockedByProcess, Is.Null);
 			Assert.That(packageInfo.Created, Is.Null);
 			Assert.That(packageInfo.LastUpdated, Is.Null);
+		}
+
+		[Test]
+		public void GetSinglePackageInfo_PackageListExists_ListModeFull()
+		{
+			var package = CreateLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			var packageInfo = sut.GetSinglePackageInfo(package.PackageId, ListMode.Full);
+
+			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfo.PackageId, Is.EqualTo(package.PackageId));
+			Assert.That(packageInfo.PackageVersion, Is.EqualTo(package.PackageVersion));
+			Assert.That(packageInfo.LockedByAction, Is.EqualTo(package.PackageLockedByAction));
+			Assert.That(packageInfo.LockedByProcess, Is.EqualTo(package.PackageLockedByProcess));
+			Assert.That(packageInfo.Created, Is.EqualTo(package.PackageCreated));
+			Assert.That(packageInfo.LastUpdated, Is.EqualTo(package.PackageLastUpdated));
 		}
 
 		[Test]
@@ -124,15 +175,34 @@ namespace HoneyLibraryTest.PackageList
 			CreatePackageList(packages);
 
 			var sut = CreateSystemUnderTest();
-			var packageInfo = sut.GetPackageInfo(package.PackageId, listMode, MatchMode.IdExact);
+			var packageInfos = sut.GetPackageInfo(package.PackageId, listMode, MatchMode.IdExact);
 
-			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos.Count, Is.EqualTo(1));
+			var packageInfo = packageInfos.ElementAt(0);
 			Assert.That(packageInfo.PackageId, Is.EqualTo(package.PackageId));
 			Assert.That(packageInfo.PackageVersion, Is.EqualTo(package.PackageVersion));
 			Assert.That(packageInfo.LockedByAction, Is.EqualTo(package.PackageLockedByAction));
 			Assert.That(packageInfo.LockedByProcess, Is.EqualTo(package.PackageLockedByProcess));
 			Assert.That(packageInfo.Created, Is.EqualTo(package.PackageCreated));
 			Assert.That(packageInfo.LastUpdated, Is.EqualTo(package.PackageLastUpdated));
+		}
+
+		#region Matchmode
+		[Test]
+		public void GetSinglePackageInfo_PackageListExists_MatchModeIdExact_NotMatchExact()
+		{
+			string packageId = "mytestPackage";
+			string searchString = packageId + " ";
+
+			var package = CreateLockedTestPackage(packageId);
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			var packageInfo = sut.GetSinglePackageInfo(searchString);
+
+			Assert.That(packageInfo, Is.Null);
 		}
 
 		[Test]
@@ -149,7 +219,29 @@ namespace HoneyLibraryTest.PackageList
 			var sut = CreateSystemUnderTest();
 			var packageInfo = sut.GetPackageInfo(searchString, ListMode.LimitOutput, matchMode);
 
-			Assert.That(packageInfo, Is.Null);
+			Assert.That(packageInfo, Is.Empty);
+		}
+
+		[Test]
+		public void GetSinglePackageInfo_PackageListExists_MatchModeIdExact_MatchExact()
+		{
+			string packageId = "mytestPackage";
+			string searchString = packageId;
+
+			var package = CreateLockedTestPackage(packageId);
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			var packageInfo = sut.GetSinglePackageInfo(searchString);
+
+			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfo.PackageId, Is.EqualTo(package.PackageId));
+			Assert.That(packageInfo.PackageVersion, Is.EqualTo(package.PackageVersion));
+			Assert.That(packageInfo.LockedByAction, Is.Null);
+			Assert.That(packageInfo.LockedByProcess, Is.Null);
+			Assert.That(packageInfo.Created, Is.Null);
+			Assert.That(packageInfo.LastUpdated, Is.Null);
 		}
 
 		[Test]
@@ -164,9 +256,11 @@ namespace HoneyLibraryTest.PackageList
 			CreatePackageList(packages);
 
 			var sut = CreateSystemUnderTest();
-			var packageInfo = sut.GetPackageInfo(searchString, ListMode.LimitOutput, matchMode);
+			var packageInfos = sut.GetPackageInfo(searchString, ListMode.LimitOutput, matchMode);
 
-			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos.Count, Is.EqualTo(1));
+			var packageInfo = packageInfos.ElementAt(0);
 			Assert.That(packageInfo.PackageId, Is.EqualTo(package.PackageId));
 			Assert.That(packageInfo.PackageVersion, Is.EqualTo(package.PackageVersion));
 			Assert.That(packageInfo.LockedByAction, Is.Null);
@@ -189,7 +283,7 @@ namespace HoneyLibraryTest.PackageList
 			var sut = CreateSystemUnderTest();
 			var packageInfo = sut.GetPackageInfo(searchString, ListMode.LimitOutput, matchMode);
 
-			Assert.That(packageInfo, Is.Null);
+			Assert.That(packageInfo, Is.Empty);
 		}
 
 		[Test]
@@ -204,15 +298,164 @@ namespace HoneyLibraryTest.PackageList
 			CreatePackageList(packages);
 
 			var sut = CreateSystemUnderTest();
-			var packageInfo = sut.GetPackageInfo(searchString, ListMode.LimitOutput, matchMode);
+			var packageInfos = sut.GetPackageInfo(searchString, ListMode.LimitOutput, matchMode);
 
-			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos.Count, Is.EqualTo(1));
+			var packageInfo = packageInfos.ElementAt(0);
 			Assert.That(packageInfo.PackageId, Is.EqualTo(package.PackageId));
 			Assert.That(packageInfo.PackageVersion, Is.EqualTo(package.PackageVersion));
 			Assert.That(packageInfo.LockedByAction, Is.Null);
 			Assert.That(packageInfo.LockedByProcess, Is.Null);
 			Assert.That(packageInfo.Created, Is.Null);
 			Assert.That(packageInfo.LastUpdated, Is.Null);
+		}
+
+		/// <summary>
+		/// The GetSinglePackageInfo Method is for upgrading packages. A unique id is crucial there and not every code should check that
+		/// </summary>
+		[Test]
+		public void GetSinglePackageInfo_MultipleEntriesWithSameIdExists_ThrowsException()
+		{
+			string firstPackageId = "myTestPackage";
+			string secondPackageId = "myTestPackage";
+
+			var firstPackage = CreateLockedTestPackage(firstPackageId);
+			var secondPackage = CreateLockedTestPackage(secondPackageId);
+			var packages = new PackagesBuilder()
+				.AddPackage(firstPackage)
+				.AddPackage(secondPackage)
+				.Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			var exception = Assert.Throws<InvalidOperationException>(() => sut.GetSinglePackageInfo(firstPackageId));
+			StringAssert.Contains(firstPackageId, exception.Message);
+		}
+
+		/// <summary>
+		/// The GetPackageInfo Method is for querying the packages. Its crucial that the user get all infos that he needs and get no exception
+		/// </summary>
+		[Test]
+		public void GetPackageInfo_MultipleEntriesWithSameIdExists_ReturnsBoth()
+		{
+			MatchMode matchMode = MatchMode.IdContains;
+			string firstPackageId = "myTestPackage";
+			string secondPackageId = "myTestPackage";
+
+			var firstPackage = CreateLockedTestPackage(firstPackageId);
+			var secondPackage = CreateLockedTestPackage(secondPackageId);
+			var packages = new PackagesBuilder()
+				.AddPackage(firstPackage)
+				.AddPackage(secondPackage)
+				.Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			var packageInfos = sut.GetPackageInfo(firstPackageId, ListMode.LimitOutput, matchMode);
+
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos.Count, Is.EqualTo(2));
+		}
+
+		[Test]
+		public void GetPackageInfo_MultipleEntriesExists_MatchModeIdContains_Contains()
+		{
+			MatchMode matchMode = MatchMode.IdContains;
+			string firstPackageId = "myTestPackage";
+			string secondPackageId = "AnotherTestPackage";
+			string thirdPackageId = "AnotherPackage";
+			string searchPattern = "TestPackage";
+
+			var firstPackage = CreateLockedTestPackage(firstPackageId);
+			var secondPackage = CreateLockedTestPackage(secondPackageId);
+			var thirdPackage = CreateLockedTestPackage(thirdPackageId);
+			var packages = new PackagesBuilder()
+				.AddPackage(firstPackage)
+				.AddPackage(secondPackage)
+				.AddPackage(thirdPackage)
+				.Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			var packageInfos = sut.GetPackageInfo(searchPattern, ListMode.LimitOutput, matchMode);
+
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos.Count, Is.EqualTo(2));
+			Assert.That(packageInfos.Where(x => x.PackageId.Equals(firstPackageId)).ToArray().Length, Is.EqualTo(1));
+			Assert.That(packageInfos.Where(x => x.PackageId.Equals(secondPackageId)).ToArray().Length, Is.EqualTo(1));
+		}
+
+		[Test]
+		public void GetPackageInfo_IsCaseInsensitive_MatchModeIdContains_Contains()
+		{
+			MatchMode matchMode = MatchMode.IdContains;
+			string firstPackageId = "mytestPackage";
+			string secondPackageId = "AnotherTestPackage";
+			string searchPattern = "TEstpACkAgE";
+
+			var firstPackage = CreateLockedTestPackage(firstPackageId);
+			var secondPackage = CreateLockedTestPackage(secondPackageId);
+			var packages = new PackagesBuilder()
+				.AddPackage(firstPackage)
+				.AddPackage(secondPackage)
+				.Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			var packageInfos = sut.GetPackageInfo(searchPattern, ListMode.LimitOutput, matchMode);
+
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos.Count, Is.EqualTo(2));
+			Assert.That(packageInfos.Where(x => x.PackageId.Equals(firstPackageId)).ToArray().Length, Is.EqualTo(1));
+			Assert.That(packageInfos.Where(x => x.PackageId.Equals(secondPackageId)).ToArray().Length, Is.EqualTo(1));
+		}
+
+		[Test]
+		public void GetPackageInfo_MultipleEntriesExists_MatchModeAll()
+		{
+			MatchMode matchMode = MatchMode.All;
+			string firstPackageId = "myTestPackage";
+			string secondPackageId = "AnotherTestPackage";
+			string thirdPackageId = "AnotherPackage";
+			string searchString = "TestPackage";
+
+			var firstPackage = CreateLockedTestPackage(firstPackageId);
+			var secondPackage = CreateLockedTestPackage(secondPackageId);
+			var thirdPackage = CreateLockedTestPackage(thirdPackageId);
+			var packages = new PackagesBuilder()
+				.AddPackage(firstPackage)
+				.AddPackage(secondPackage)
+				.AddPackage(thirdPackage)
+				.Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			var packageInfos = sut.GetPackageInfo(searchString, ListMode.LimitOutput, matchMode);
+
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos.Count, Is.EqualTo(3));
+			Assert.That(packageInfos.Where(x => x.PackageId.Equals(firstPackageId)).ToArray().Length, Is.EqualTo(1));
+			Assert.That(packageInfos.Where(x => x.PackageId.Equals(secondPackageId)).ToArray().Length, Is.EqualTo(1));
+			Assert.That(packageInfos.Where(x => x.PackageId.Equals(thirdPackageId)).ToArray().Length, Is.EqualTo(1));
+		}
+		#endregion MatchMode
+
+		[Test]
+		public void GetSinglePackageInfo_LastUpdateIsNull()
+		{
+			Nullable<DateTimeOffset> lastUpdated = null;
+			var package = CreateLockedTestPackage();
+			package.SetLastUpdated(lastUpdated);
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			var packageInfo = sut.GetSinglePackageInfo(package.PackageId);
+
+			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfo.LastUpdated, Is.EqualTo(lastUpdated));
 		}
 
 		[Test]
@@ -228,9 +471,11 @@ namespace HoneyLibraryTest.PackageList
 			CreatePackageList(packages);
 
 			var sut = CreateSystemUnderTest();
-			var packageInfo = sut.GetPackageInfo(package.PackageId, listMode, MatchMode.IdExact);
+			var packageInfos = sut.GetPackageInfo(package.PackageId, listMode, MatchMode.IdExact);
 
-			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos.Count, Is.EqualTo(1));
+			var packageInfo = packageInfos.ElementAt(0);
 			Assert.That(packageInfo.LastUpdated, Is.EqualTo(lastUpdated));
 		}
 		#endregion GetPackageInfo
@@ -246,9 +491,11 @@ namespace HoneyLibraryTest.PackageList
 
 			sut.StartActionOnPackage(packageId, packageVersion);
 
-			var packageInfo = sut.GetPackageInfo(packageId, ListMode.Full, MatchMode.IdExact);
+			var packageInfos = sut.GetPackageInfo(packageId, ListMode.Full, MatchMode.IdExact);
 
-			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos.Count, Is.EqualTo(1));
+			var packageInfo = packageInfos.ElementAt(0);
 			Assert.That(packageInfo.PackageId, Is.EqualTo(packageId));
 			Assert.That(packageInfo.PackageVersion, Is.EqualTo(packageVersion.ToString()));
 			Assert.That(packageInfo.LockedByAction, Is.Not.Null);
@@ -268,9 +515,11 @@ namespace HoneyLibraryTest.PackageList
 
 			sut.StartActionOnPackage(package.PackageId, new Version(package.PackageVersion));
 
-			var packageInfo = sut.GetPackageInfo(package.PackageId, ListMode.Full, MatchMode.IdExact);
+			var packageInfos = sut.GetPackageInfo(package.PackageId, ListMode.Full, MatchMode.IdExact);
 
-			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos.Count, Is.EqualTo(1));
+			var packageInfo = packageInfos.ElementAt(0);
 			Assert.That(packageInfo.PackageId, Is.EqualTo(package.PackageId));
 			Assert.That(packageInfo.PackageVersion, Is.EqualTo(package.PackageVersion));
 			Assert.That(packageInfo.LockedByAction, Is.Not.Null);
@@ -291,9 +540,11 @@ namespace HoneyLibraryTest.PackageList
 
 			sut.EndActionOnPackage(packageId, packageVersion);
 
-			var packageInfo = sut.GetPackageInfo(packageId, ListMode.Full, MatchMode.IdExact);
+			var packageInfos = sut.GetPackageInfo(packageId, ListMode.Full, MatchMode.IdExact);
 
-			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos.Count, Is.EqualTo(1));
+			var packageInfo = packageInfos.ElementAt(0);
 			Assert.That(packageInfo.PackageId, Is.EqualTo(packageId));
 			Assert.That(packageInfo.PackageVersion, Is.EqualTo(packageVersion.ToString()));
 			Assert.That(packageInfo.LockedByAction, Is.EqualTo(string.Empty));
@@ -312,9 +563,11 @@ namespace HoneyLibraryTest.PackageList
 
 			sut.EndActionOnPackage(package.PackageId, new Version(package.PackageVersion));
 
-			var packageInfo = sut.GetPackageInfo(package.PackageId, ListMode.Full, MatchMode.IdExact);
+			var packageInfos = sut.GetPackageInfo(package.PackageId, ListMode.Full, MatchMode.IdExact);
 
-			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos.Count, Is.EqualTo(1));
+			var packageInfo = packageInfos.ElementAt(0);
 			Assert.That(packageInfo.PackageId, Is.EqualTo(package.PackageId));
 			Assert.That(packageInfo.PackageVersion, Is.EqualTo(package.PackageVersion));
 			Assert.That(packageInfo.LockedByAction, Is.EqualTo(string.Empty));
@@ -334,9 +587,11 @@ namespace HoneyLibraryTest.PackageList
 
 			var sut = CreateSystemUnderTest();
 
-			var packageInfo = sut.GetPackageInfo(package.PackageId, ListMode.LimitOutput, MatchMode.IdExact);
+			var packageInfos = sut.GetPackageInfo(package.PackageId, ListMode.LimitOutput, MatchMode.IdExact);
 
-			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos.Count, Is.EqualTo(1));
+			var packageInfo = packageInfos.ElementAt(0);
 			Assert.That(packageInfo.PackageId, Is.EqualTo(package.PackageId));
 		}
 
@@ -434,7 +689,7 @@ namespace HoneyLibraryTest.PackageList
 		}
 
 		[Test]
-		public async Task FileIsUsedByAnotherProcess_FileIsTemporaryLockedForWriteOperation_StartActionOnPackageRetries()
+		public async Task GetSinglePackageInfo_FileIsUsedByAnotherProcess_FileIsTemporaryLockedForWriteOperation_StartActionOnPackageRetries()
 		{
 			var package = CreateNonLockedTestPackage();
 			var packages = new PackagesBuilder().AddPackage(package).Build();
@@ -450,12 +705,36 @@ namespace HoneyLibraryTest.PackageList
 				await task;
 			};
 
-			var packageInfo = sut.GetPackageInfo(package.PackageId, ListMode.Full, MatchMode.IdExact);
+			var packageInfo = sut.GetSinglePackageInfo(package.PackageId, ListMode.Full);
 			Assert.That(packageInfo.LockedByProcess, Is.EqualTo(Process.GetCurrentProcess().Id.ToString()));
 		}
 
 		[Test]
-		public async Task FileIsUsedByAnotherProcess_FileIsTemporaryLockedForWriteOperation_EndActionOnPackageRetries()
+		public async Task GetPackageInfo_FileIsUsedByAnotherProcess_FileIsTemporaryLockedForWriteOperation_StartActionOnPackageRetries()
+		{
+			var package = CreateNonLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			using (var fileStream = sut.OpenPackageListForWriteOperation())
+			{
+				var task = Task.Run(() => sut.StartActionOnPackage(package.PackageId, new Version(package.PackageVersion)));
+				Thread.Sleep(1000);
+				fileStream.Close();
+
+				await task;
+			};
+
+			var packageInfos = sut.GetPackageInfo(package.PackageId, ListMode.Full, MatchMode.IdExact);
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos.Count, Is.EqualTo(1));
+			var packageInfo = packageInfos.ElementAt(0);
+			Assert.That(packageInfo.LockedByProcess, Is.EqualTo(Process.GetCurrentProcess().Id.ToString()));
+		}
+
+		[Test]
+		public async Task GetSinglePackageInfo_FileIsUsedByAnotherProcess_FileIsTemporaryLockedForWriteOperation_EndActionOnPackageRetries()
 		{
 			var package = CreateNonLockedTestPackage();
 			var packages = new PackagesBuilder().AddPackage(package).Build();
@@ -471,7 +750,31 @@ namespace HoneyLibraryTest.PackageList
 				await task;
 			};
 
-			var packageInfo = sut.GetPackageInfo(package.PackageId, ListMode.Full, MatchMode.IdExact);
+			var packageInfo = sut.GetSinglePackageInfo(package.PackageId, ListMode.Full);
+			Assert.That(packageInfo.LockedByProcess, Is.Not.Null);
+		}
+
+		[Test]
+		public async Task GetPackageInfo_FileIsUsedByAnotherProcess_FileIsTemporaryLockedForWriteOperation_EndActionOnPackageRetries()
+		{
+			var package = CreateNonLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			using (var fileStream = sut.OpenPackageListForWriteOperation())
+			{
+				var task = Task.Run(() => sut.EndActionOnPackage(package.PackageId, new Version(package.PackageVersion)));
+				Thread.Sleep(1000);
+				fileStream.Close();
+
+				await task;
+			};
+
+			var packageInfos = sut.GetPackageInfo(package.PackageId, ListMode.Full, MatchMode.IdExact);
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos.Count, Is.EqualTo(1));
+			var packageInfo = packageInfos.ElementAt(0);
 			Assert.That(packageInfo.LockedByProcess, Is.Not.Null);
 		}
 
@@ -491,7 +794,7 @@ namespace HoneyLibraryTest.PackageList
 		}
 
 		[Test]
-		public void FileIsUsedByAnotherProcess_FileIsLockedForReadOperation_StartActionOnPackageWorks()
+		public void GetSinglePackageInfo_FileIsUsedByAnotherProcess_FileIsLockedForReadOperation_StartActionOnPackageWorks()
 		{
 			var package = CreateNonLockedTestPackage();
 			var packages = new PackagesBuilder().AddPackage(package).Build();
@@ -503,12 +806,32 @@ namespace HoneyLibraryTest.PackageList
 				sut.StartActionOnPackage(package.PackageId, new Version(package.PackageVersion));
 			};
 
-			var packageInfo = sut.GetPackageInfo(package.PackageId, ListMode.Full, MatchMode.IdExact);
+			var packageInfo = sut.GetSinglePackageInfo(package.PackageId, ListMode.Full);
 			Assert.That(packageInfo.LockedByProcess, Is.EqualTo(Process.GetCurrentProcess().Id.ToString()));
 		}
 
 		[Test]
-		public void FileIsUsedByAnotherProcess_FileIsLockedForReadOperation_EndActionOnPackageWork()
+		public void GetPackageInfo_FileIsUsedByAnotherProcess_FileIsLockedForReadOperation_StartActionOnPackageWorks()
+		{
+			var package = CreateNonLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			using (var fileStream = sut.OpenPackageListForReadOperation())
+			{
+				sut.StartActionOnPackage(package.PackageId, new Version(package.PackageVersion));
+			};
+
+			var packageInfos = sut.GetPackageInfo(package.PackageId, ListMode.Full, MatchMode.IdExact);
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos.Count, Is.EqualTo(1));
+			var packageInfo = packageInfos.ElementAt(0);
+			Assert.That(packageInfo.LockedByProcess, Is.EqualTo(Process.GetCurrentProcess().Id.ToString()));
+		}
+
+		[Test]
+		public void GetSinglePackageInfo_FileIsUsedByAnotherProcess_FileIsLockedForReadOperation_EndActionOnPackageWork()
 		{
 			var package = CreateNonLockedTestPackage();
 			var packages = new PackagesBuilder().AddPackage(package).Build();
@@ -520,12 +843,47 @@ namespace HoneyLibraryTest.PackageList
 				sut.EndActionOnPackage(package.PackageId, new Version(package.PackageVersion));
 			};
 
-			var packageInfo = sut.GetPackageInfo(package.PackageId, ListMode.Full, MatchMode.IdExact);
+			var packageInfo = sut.GetSinglePackageInfo(package.PackageId, ListMode.Full);
 			Assert.That(packageInfo.LastUpdated, Is.Not.Null);
 		}
 
 		[Test]
-		public void FileIsUsedByAnotherProcess_FileIsLockedForReadOperation_GetPackageInfoWorks()
+		public void GetPackageInfo_FileIsUsedByAnotherProcess_FileIsLockedForReadOperation_EndActionOnPackageWork()
+		{
+			var package = CreateNonLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			using (var fileStream = sut.OpenPackageListForReadOperation())
+			{
+				sut.EndActionOnPackage(package.PackageId, new Version(package.PackageVersion));
+			};
+
+			var packageInfos = sut.GetPackageInfo(package.PackageId, ListMode.Full, MatchMode.IdExact);
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos.Count, Is.EqualTo(1));
+			var packageInfo = packageInfos.ElementAt(0);
+			Assert.That(packageInfo.LastUpdated, Is.Not.Null);
+		}
+
+		[Test]
+		public void GetSinglePackageInfo_FileIsUsedByAnotherProcess_FileIsLockedForReadOperation_GetPackageInfoWorks()
+		{
+			var package = CreateNonLockedTestPackage();
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			using (var fileStream = sut.OpenPackageListForReadOperation())
+			{
+				var packageInfo = sut.GetSinglePackageInfo(package.PackageId);
+				Assert.That(packageInfo, Is.Not.Null);
+			};
+		}
+
+		[Test]
+		public void GetPackageInfo_FileIsUsedByAnotherProcess_FileIsLockedForReadOperation_GetPackageInfoWorks()
 		{
 			var package = CreateNonLockedTestPackage();
 			var packages = new PackagesBuilder().AddPackage(package).Build();
@@ -633,6 +991,7 @@ namespace HoneyLibraryTest.PackageList
 		}
 
 		[Test]
+		[Ignore("Remove Package is not not implemented :)")]
 		public void Migration_RemovePackage_PackageListIsNotMigratedAndVersionIsNotAddedIfVersionExists()
 		{
 			var expectedVersion = "myversion";

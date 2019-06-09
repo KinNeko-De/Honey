@@ -98,9 +98,18 @@ namespace HoneyLibrary.PackageLists
 			return versionAttribute.Value;
 		}
 
-		internal static XElement FetchPackageListInfo(string packageId, XDocument packageList, MatchMode matchMode)
+		internal static IEnumerable<XElement> FetchPackageListInfo(string searchPattern, XDocument packageList, MatchMode matchMode)
 		{
-			Func<string, bool> matchFunction = GetMatchFunction(packageId, matchMode);
+			Func<string, bool> matchFunction = GetMatchFunction(searchPattern, matchMode);
+
+			IEnumerable<XElement> matchingPackageIds = packageList.Root.Elements(XmlPackage).Where(x => matchFunction.Invoke(x.Element(XmlPackageId).Value));
+
+			return matchingPackageIds;
+		}
+
+		internal static XElement FetchSinglePackageListInfo(string packageId, XDocument packageList)
+		{
+			Func<string, bool> matchFunction = GetMatchFunction(packageId, MatchMode.IdExact);
 
 			IEnumerable<XElement> matchingPackageIds = packageList.Root.Elements(XmlPackage).Where(x => matchFunction.Invoke(x.Element(XmlPackageId).Value));
 
@@ -108,6 +117,7 @@ namespace HoneyLibrary.PackageLists
 			{
 				throw new InvalidOperationException($"Multiple entries of package id { packageId } were found in the package repository. This is not supported.");
 			}
+
 			return matchingPackageIds.SingleOrDefault();
 		}
 
@@ -117,11 +127,14 @@ namespace HoneyLibrary.PackageLists
 
 			switch (matchMode)
 			{
+				case MatchMode.All:
+					matchFuction = new Func<string, bool>((xmlPackageId) => true);
+					break;
 				case MatchMode.IdExact:
 					matchFuction = new Func<string, bool>((xmlPackageId) => xmlPackageId == packageId);
 					break;
 				case MatchMode.IdContains:
-					matchFuction = new Func<string, bool>((xmlPackageId) => xmlPackageId.Contains(packageId));
+					matchFuction = new Func<string, bool>((xmlPackageId) => xmlPackageId.IndexOf(packageId, StringComparison.InvariantCultureIgnoreCase) >= 0);
 					break;
 				default:
 					throw new InvalidEnumArgumentException(nameof(matchMode), (int)matchMode, typeof(MatchMode));

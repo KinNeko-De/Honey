@@ -18,11 +18,11 @@ namespace HoneyLibrary.Controller
 			this.packageListRepository = packageListRepository;
 		}
 
-		public IPackageInfo GetPackageInfo(string packageId, ListMode listMode, MatchMode matchMode)
+		public IReadOnlyCollection<IPackageInfo> GetPackageInfo(string searchPattern, ListMode listMode, MatchMode matchMode)
 		{
 			Stopwatch stopwatch = new Stopwatch();
 			stopwatch.Restart();
-			IPackageInfo result = packageListRepository.GetPackageInfo(packageId, listMode, matchMode);
+			var result = packageListRepository.GetPackageInfo(searchPattern, listMode, matchMode);
 			stopwatch.Stop();
 			Console.WriteLine($"Querying xml list needs {stopwatch.ElapsedMilliseconds} ms.");
 			return result;

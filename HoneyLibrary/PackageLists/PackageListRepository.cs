@@ -4,10 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using System.Xml;
 using System.Xml.Linq;
 
 namespace HoneyLibrary.PackageLists
@@ -22,17 +19,8 @@ namespace HoneyLibrary.PackageLists
 			this.honeyInstallLocation = honeyInstallLocation;
 		}
 
-		public IReadOnlyCollection<IPackageInfo> GetAllPackageListed()
-		{
-			throw new NotImplementedException();
-		}
-
-		public IPackageInfo[] GetPackageInfosWithMatchingName(string searchPattern)
-		{
-			throw new NotImplementedException();
-		}
-
-		public IPackageInfo GetPackageInfo(string packageId, ListMode listMode, MatchMode matchMode)
+		// TODO For MatchMode.All the searchPattern is useless
+		public IReadOnlyCollection<IPackageInfo> GetPackageInfo(string searchPattern, ListMode listMode, MatchMode matchMode)
 		{
 			try
 			{
@@ -48,9 +36,9 @@ namespace HoneyLibrary.PackageLists
 						throw new InvalidOperationException($"Reading of package list failed: {e.Message}", e);
 					}
 
-					var packageListInfoElement = PackageList.FetchPackageListInfo(packageId, packageList, matchMode);
+					IEnumerable<XElement> packageListInfoElement = PackageList.FetchPackageListInfo(searchPattern, packageList, matchMode);
 
-					return PackageList.ReadPackageInfo(packageListInfoElement, listMode);
+					return packageListInfoElement.Select(x => PackageList.ReadPackageInfo(x, listMode)).ToArray();
 				}
 			}
 			catch(FileNotFoundException)
@@ -59,9 +47,41 @@ namespace HoneyLibrary.PackageLists
 			}
 		}
 
+		public IPackageInfo GetSinglePackageInfo(string packageId)
+		{
+			return GetSinglePackageInfo(packageId, ListMode.LimitOutput);
+		}
+
+		internal IPackageInfo GetSinglePackageInfo(string packageId, ListMode listMode)
+		{
+			try
+			{
+				using (FileStream fileStream = OpenPackageListForReadOperation())
+				{
+					XDocument packageList;
+					try
+					{
+						packageList = PackageList.Load(fileStream);
+					}
+					catch (Exception e)
+					{
+						throw new InvalidOperationException($"Reading of package list failed: {e.Message}", e);
+					}
+
+					XElement packageListInfoElement = PackageList.FetchSinglePackageListInfo(packageId, packageList);
+
+					return PackageList.ReadPackageInfo(packageListInfoElement, listMode);
+				}
+			}
+			catch (FileNotFoundException)
+			{
+				return null;
+			}
+		}
+
 		public void RemovePackage(string packageId)
 		{
-
+			throw new NotImplementedException();
 		}
 
 		public void StartActionOnPackage(string packageId, Version version)
@@ -82,7 +102,7 @@ namespace HoneyLibrary.PackageLists
 		{
 			WriteToPackageList(OpenPackageListForWriteOperation, (packageList) =>
 			{
-				XElement packageListInfoElement = PackageList.FetchPackageListInfo(packageId, packageList, MatchMode.IdExact);
+				XElement packageListInfoElement = PackageList.FetchSinglePackageListInfo(packageId, packageList);
 				if (packageListInfoElement == null)
 				{
 					packageListInfoElement = PackageList.CreatePackageListInfo(packageId, version, action, processId, packageList);

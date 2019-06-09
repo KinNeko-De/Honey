@@ -22,46 +22,52 @@ namespace Honey.Commands
 
 			IPackageListRepository packageListRepository = new PackageListRepository(new HoneyInstallLocation());
 			IListController listController = new ListController(packageListRepository);
-			if(args.Length < 2)
-			{
-				throw new ArgumentException("Please add the specific id of the package you search", "packageId");
-			}
-			var packageId = args[1];
 
 			// limitOutput is more for programms, programms can easy add arguments, dont bother people to do that
 			ListMode listMode = ListMode.Full;
-			// TODO implement correct parameter parsing here :)
-			MatchMode matchMode = MatchMode.IdContains;
 
-			if(args.Length > 2)
+			MatchMode matchMode = MatchMode.All;
+			string searchPattern = null;
+			if (args.Length > 1)
 			{
-				listMode = ListMode.LimitOutput;
+				// TODO implement correct parameter parsing here :)
+				matchMode = MatchMode.IdContains;
+				searchPattern = args[1];
 			}
-			var packageInfo = listController.GetPackageInfo(packageId, listMode, matchMode);
-			if (packageInfo != null)
+
+			var packageInfos = listController.GetPackageInfo(searchPattern, listMode, matchMode);
+			if (packageInfos != null)
 			{
 				string output = null;
 				switch (listMode)
 				{
 					case ListMode.Full:
-						output = $@"{nameof(packageInfo.PackageId)}: {packageInfo.PackageId}
+						foreach (var packageInfo in packageInfos)
+						{
+							output += $@"{nameof(packageInfo.PackageId)}: {packageInfo.PackageId}
 {nameof(packageInfo.PackageVersion)}: {packageInfo.PackageVersion}
 {nameof(packageInfo.LockedByAction)}: {packageInfo.LockedByAction}
 {nameof(packageInfo.LockedByProcess)}: {packageInfo.LockedByProcess}
 {nameof(packageInfo.Created)}: {packageInfo.Created}
 {nameof(packageInfo.LastUpdated)}: {packageInfo.LastUpdated}";
+						}
+
 						break;
 					case ListMode.LimitOutput:
-						output = $"{packageInfo.PackageId}|{packageInfo.PackageVersion}";
+						foreach (var packageInfo in packageInfos)
+						{
+							output += $"{packageInfo.PackageId}|{packageInfo.PackageVersion}";
+						}
 						break;
 					default:
 						throw new ArgumentOutOfRangeException(nameof(listMode));
 				}
+				// TODO Switch to .Net Core for Async WriteLines
 				Console.WriteLine(output);
 			}
 			else
 			{
-				Console.WriteLine($"no package with id '{packageId}' found");
+				Console.WriteLine($"no package where id contains '{searchPattern}' found");
 			}
 		}
 	}
