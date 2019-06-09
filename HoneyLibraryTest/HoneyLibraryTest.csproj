@@ -47,9 +47,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="EmbeddedResourceExtensions.cs" />
-    <Compile Include="PackageList\PackageListRepositoryTest.cs" />
-    <Compile Include="PackageList\TestData\PackageBuilder.cs" />
-    <Compile Include="PackageList\TestData\PackagesBuilder.cs" />
+    <Compile Include="PackageLists\PackageListRepositoryTest.cs" />
+    <Compile Include="PackageLists\TestData\PackageBuilder.cs" />
+    <Compile Include="PackageLists\TestData\PackagesBuilder.cs" />
     <Compile Include="PathInstallLocation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -14,9 +14,12 @@ namespace HoneyLibrary.PackageLists
 		public const string PackageListFileName = "packages.xml";
 		private readonly IInstallLocation honeyInstallLocation;
 
-		public PackageListRepository(IInstallLocation honeyInstallLocation)
+		private IReadOnlyCollection<IPackageListMigration> packageListMigrations { get; }
+
+		public PackageListRepository(IInstallLocation honeyInstallLocation, IReadOnlyCollection<IPackageListMigration> packageListMigrations)
 		{
 			this.honeyInstallLocation = honeyInstallLocation;
+			this.packageListMigrations = packageListMigrations;
 		}
 
 		// TODO For MatchMode.All the searchPattern is useless
@@ -26,19 +29,11 @@ namespace HoneyLibrary.PackageLists
 			{
 				using (FileStream fileStream = OpenPackageListForReadOperation())
 				{
-					XDocument packageList;
-					try
-					{
-						packageList = PackageList.Load(fileStream);
-					}
-					catch (Exception e)
-					{
-						throw new InvalidOperationException($"Reading of package list failed: {e.Message}", e);
-					}
+					PackageList packageList = LoadPackageList(fileStream);
 
-					IEnumerable<XElement> packageListInfoElement = PackageList.FetchPackageListInfo(searchPattern, packageList, matchMode);
+					var packageInfos = packageList.FetchPackageListInfo(searchPattern, listMode, matchMode);
 
-					return packageListInfoElement.Select(x => PackageList.ReadPackageInfo(x, listMode)).ToArray();
+					return packageInfos;
 				}
 			}
 			catch(FileNotFoundException)
@@ -46,6 +41,7 @@ namespace HoneyLibrary.PackageLists
 				return null;
 			}
 		}
+
 
 		public IPackageInfo GetSinglePackageInfo(string packageId)
 		{
@@ -58,25 +54,32 @@ namespace HoneyLibrary.PackageLists
 			{
 				using (FileStream fileStream = OpenPackageListForReadOperation())
 				{
-					XDocument packageList;
-					try
-					{
-						packageList = PackageList.Load(fileStream);
-					}
-					catch (Exception e)
-					{
-						throw new InvalidOperationException($"Reading of package list failed: {e.Message}", e);
-					}
+					PackageList packageList = LoadPackageList(fileStream);
 
-					XElement packageListInfoElement = PackageList.FetchSinglePackageListInfo(packageId, packageList);
+					IPackageInfo packageInfo = packageList.FetchSinglePackageListInfo(packageId, listMode);
 
-					return PackageList.ReadPackageInfo(packageListInfoElement, listMode);
+					return packageInfo;
 				}
 			}
 			catch (FileNotFoundException)
 			{
 				return null;
 			}
+		}
+
+		private PackageList LoadPackageList(FileStream fileStream)
+		{
+			PackageList packageList;
+			try
+			{
+				packageList = PackageList.Load(fileStream, packageListMigrations);
+			}
+			catch (Exception e)
+			{
+				throw new InvalidOperationException($"Reading of package list failed: {e.Message}", e);
+			}
+
+			return packageList;
 		}
 
 		public void RemovePackage(string packageId)
@@ -102,21 +105,31 @@ namespace HoneyLibrary.PackageLists
 		{
 			WriteToPackageList(OpenPackageListForWriteOperation, (packageList) =>
 			{
-				XElement packageListInfoElement = PackageList.FetchSinglePackageListInfo(packageId, packageList);
-				if (packageListInfoElement == null)
+				PackageInfo packageInfo = packageList.FetchSinglePackageListInfo(packageId);
+				if (packageInfo == null)
 				{
-					packageListInfoElement = PackageList.CreatePackageListInfo(packageId, version, action, processId, packageList);
+					packageInfo = packageList.AddPackageListInfo(packageId, version, action, processId);
 				}
 				else
 				{
-					PackageList.AbortIfLockedByProcess(packageListInfoElement);
-					PackageList.UpdatePackageListInfo(version, action, processId, packageListInfoElement);
+					AbortIfLockedByProcess(packageInfo);
+					packageList.UpdatePackageListInfo(version, action, processId, packageInfo);
 				}
 
 			});
 		}
 
-		private void WriteToPackageList(Func<FileStream> packageListOpenStream, Action<XDocument> actionToPerformOnPackageList)
+		private void AbortIfLockedByProcess(IPackageInfo packageInfo)
+		{
+			var lockedbyProcess = packageInfo.LockedByProcess;
+			if (!string.IsNullOrEmpty(lockedbyProcess) && lockedbyProcess != Process.GetCurrentProcess().Id.ToString())
+			{
+				// Throw honey specific exception and handle this different than unexpected exception (reduced output to non stacktrace and return specific exit code)
+				throw new InvalidOperationException($"Package {packageInfo.PackageId} can not be locked. Action '{packageInfo.LockedByAction}' is on progress by process '{ packageInfo.LockedByProcess }'");
+			}
+		}
+
+		private void WriteToPackageList(Func<FileStream> packageListOpenStream, Action<PackageList> actionToPerformOnPackageList)
 		{
 			FileStream fileStream = null;
 			bool fileExists = true;
@@ -133,17 +146,10 @@ namespace HoneyLibrary.PackageLists
 
 			using (fileStream)
 			{
-				XDocument packageList;
+				PackageList packageList;
 				if (fileExists)
 				{
-					try
-					{
-						packageList = PackageList.Load(fileStream);
-					}
-					catch (Exception e)
-					{
-						throw new InvalidOperationException($"Reading of package list failed: {e.Message}", e);
-					}
+					packageList = LoadPackageList(fileStream);
 				}
 				else
 				{

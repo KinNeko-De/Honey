@@ -67,7 +67,7 @@ namespace Honey.Commands
 			IDeploymentComponentFactory deploymentComponentFactory = new DeploymentComponentFactory(honeyInstallLocation, new PathInstallLocation(applicationInstallationDir));
 
 			INugetPackageRepository nugetPackageRepository = new NugetPackageRepository(new NugetPackageRepositoryConfig(honeyInstallLocation), new PackageSourceRepositoryFactory());
-			IPackageListRepository packageListRepository = new PackageListRepository(new HoneyInstallLocation());
+			IPackageListRepository packageListRepository = new PackageListRepository(new HoneyInstallLocation(), null);
 			IDeploymentController deploymentController = new DeploymentController(deploymentComponentFactory, nugetPackageRepository, packageListRepository);
 
             deploymentController.Upgrade(packageId, packageVersion, packageSource);

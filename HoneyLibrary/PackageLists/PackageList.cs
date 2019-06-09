@@ -23,18 +23,51 @@ namespace HoneyLibrary.PackageLists
 		internal const string XmlLockedByProcess = "LockedByProcess";
 		internal const string currentVersion = "1.0";
 
-		internal static void AbortIfLockedByProcess(XElement packageListInfoElement)
+		private XDocument xpackageList;
+
+		public PackageList(XDocument xpackageList)
 		{
-			var lockedbyProcess = packageListInfoElement.Element(XmlLockedByProcess).Value;
-			if (!string.IsNullOrEmpty(lockedbyProcess) && lockedbyProcess != Process.GetCurrentProcess().Id.ToString())
+			this.xpackageList = xpackageList;
+		}
+
+		internal static PackageList Load(FileStream fileStream, IEnumerable<IPackageListMigration> packageListMigrations)
+		{
+			XDocument packageList = XDocument.Load(fileStream, LoadOptions.PreserveWhitespace);
+
+			MigratePackagList(packageList, packageListMigrations);
+
+			return new PackageList(packageList);
+		}
+
+		/// <summary>
+		/// Possibility to migrate the packageList here. See the tests for an example
+		/// </summary>
+		/// <param name="packageList"></param>
+		private static void MigratePackagList(XDocument packageList, IEnumerable<IPackageListMigration> packageListMigrations)
+		{
+			if(packageListMigrations != null)
 			{
-				// Throw honey specific exception and handle this different than unexpected exception (reduced output to non stacktrace and return specific exit code)
-				throw new InvalidOperationException($"Package {packageListInfoElement.Element(XmlPackageId)} can not be locked. Action '{packageListInfoElement.Element(XmlLockedByAction).Value}' is on progress by process '{packageListInfoElement.Element(XmlLockedByProcess).Value}'");
+				foreach (var packageListMigration in packageListMigrations)
+				{
+					packageListMigration.Migrate(packageList);
+				}
 			}
 		}
 
-		internal static void UpdatePackageListInfo(Version version, string action, string processId, XElement packageListInfoElement)
+		internal static PackageList CreateNewPackageList()
 		{
+			var xpackageList = new XDocument(
+						new XDeclaration("1.0", "utf-8", "yes"),
+						new XElement(XmlRoot,
+							new XAttribute(XmlRootVersionAttribute, currentVersion)
+						)
+						);
+			return new PackageList(xpackageList);
+		}
+
+		internal void UpdatePackageListInfo(Version version, string action, string processId, PackageInfo packageInfo)
+		{
+			var packageListInfoElement = packageInfo.packageListInfoElement;
 			var lockedbyProcess = packageListInfoElement.Element(XmlLockedByProcess).Value;
 			if (!string.IsNullOrEmpty(lockedbyProcess) && lockedbyProcess != Process.GetCurrentProcess().Id.ToString())
 			{
@@ -48,70 +81,37 @@ namespace HoneyLibrary.PackageLists
 			packageListInfoElement.Element(XmlLastUpdated).SetValue(DateTimeOffset.Now);
 		}
 
-		internal static XDocument CreateNewPackageList()
+		public IReadOnlyCollection<IPackageInfo> FetchPackageListInfo(string searchPattern, ListMode listMode, MatchMode matchMode)
 		{
-			return new XDocument(
-						new XDeclaration("1.0", "utf-8", "yes"),
-						new XElement(XmlRoot, 
-							new XAttribute(XmlRootVersionAttribute, currentVersion)
-						)
-						);
+			var packageListInfoElement = FetchPackageListInfo(searchPattern, matchMode);
+			return packageListInfoElement.Select(x => ReadPackageInfo(x, listMode)).ToArray();
 		}
 
-		public static XDocument Load(FileStream fileStream)
-		{
-			XDocument packageList = XDocument.Load(fileStream, LoadOptions.PreserveWhitespace);
-
-			MigratePackagList(packageList);
-
-			return packageList;
-		}
-
-		/// <summary>
-		/// Example for a migration of a list
-		/// </summary>
-		/// <param name="packageList"></param>
-		private static void MigratePackagList(XDocument packageList)
-		{
-			string packageListVersion = GetPackageListVersion(packageList);
-
-			switch(packageListVersion)
-			{
-				case null:
-					// if the version attribute is not set it will be added
-					packageList.Root.SetAttributeValue(XmlRootVersionAttribute, currentVersion);
-					break;
-				default:
-					break;
-			}
-		}
-
-		private static string GetPackageListVersion(XDocument packageList)
-		{
-			var versionAttribute = packageList.Root.Attribute(XmlRootVersionAttribute);
-
-			if(versionAttribute == null)
-			{
-				return null;
-			}
-
-			return versionAttribute.Value;
-		}
-
-		internal static IEnumerable<XElement> FetchPackageListInfo(string searchPattern, XDocument packageList, MatchMode matchMode)
+		private IEnumerable<XElement> FetchPackageListInfo(string searchPattern, MatchMode matchMode)
 		{
 			Func<string, bool> matchFunction = GetMatchFunction(searchPattern, matchMode);
 
-			IEnumerable<XElement> matchingPackageIds = packageList.Root.Elements(XmlPackage).Where(x => matchFunction.Invoke(x.Element(XmlPackageId).Value));
+			IEnumerable<XElement> matchingPackageIds = xpackageList.Root.Elements(XmlPackage).Where(x => matchFunction.Invoke(x.Element(XmlPackageId).Value));
 
 			return matchingPackageIds;
 		}
 
-		internal static XElement FetchSinglePackageListInfo(string packageId, XDocument packageList)
+		internal PackageInfo FetchSinglePackageListInfo(string packageId)
+		{
+			return FetchSinglePackageListInfo(packageId, ListMode.Full);
+		}
+
+		internal PackageInfo FetchSinglePackageListInfo(string packageId, ListMode listMode)
+		{
+			XElement xelement = FetchSinglePackageListElement(packageId);
+			return ReadPackageInfo(xelement, listMode);
+		}
+
+		private XElement FetchSinglePackageListElement(string packageId)
 		{
 			Func<string, bool> matchFunction = GetMatchFunction(packageId, MatchMode.IdExact);
 
-			IEnumerable<XElement> matchingPackageIds = packageList.Root.Elements(XmlPackage).Where(x => matchFunction.Invoke(x.Element(XmlPackageId).Value));
+			IEnumerable<XElement> matchingPackageIds = xpackageList.Root.Elements(XmlPackage).Where(x => matchFunction.Invoke(x.Element(XmlPackageId).Value));
 
 			if (matchingPackageIds.Count() > 1)
 			{
@@ -121,7 +121,7 @@ namespace HoneyLibrary.PackageLists
 			return matchingPackageIds.SingleOrDefault();
 		}
 
-		private static Func<string, bool> GetMatchFunction(string packageId, MatchMode matchMode)
+		private Func<string, bool> GetMatchFunction(string packageId, MatchMode matchMode)
 		{
 			Func<string, bool> matchFuction;
 
@@ -143,7 +143,7 @@ namespace HoneyLibrary.PackageLists
 			return matchFuction;
 		}
 
-		internal static XElement CreatePackageListInfo(string packageId, Version version, string action, string processId, XDocument packageList)
+		internal PackageInfo AddPackageListInfo(string packageId, Version version, string action, string processId)
 		{
 			XElement packageListInfoElement =
 				new XElement(XmlPackage,
@@ -154,18 +154,19 @@ namespace HoneyLibrary.PackageLists
 					new XElement(XmlCreated, DateTimeOffset.Now),
 					new XElement(XmlLastUpdated)
 				);
-			packageList.Root.Add(packageListInfoElement);
-			return packageListInfoElement;
+			xpackageList.Root.Add(packageListInfoElement);
+
+			return ReadPackageInfo(packageListInfoElement, ListMode.Full);
 		}
 
-		internal static IPackageInfo ReadPackageInfo(XElement packageListInfoElement, ListMode listMode)
+		internal PackageInfo ReadPackageInfo(XElement packageListInfoElement, ListMode listMode)
 		{
 			if (packageListInfoElement == null)
 			{
 				return null;
 			}
 
-			PackageInfo packageInfo = new PackageInfo()
+			PackageInfo packageInfo = new PackageInfo(packageListInfoElement)
 			{
 				PackageId = packageListInfoElement.Element(XmlPackageId).Value,
 				PackageVersion = packageListInfoElement.Element(XmlPackageVersion).Value
@@ -182,6 +183,11 @@ namespace HoneyLibrary.PackageLists
 			};
 
 			return packageInfo;
+		}
+
+		public void Save(Stream stream)
+		{
+			xpackageList.Save(stream);
 		}
 	}
 }

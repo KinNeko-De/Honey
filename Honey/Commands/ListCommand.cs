@@ -20,7 +20,7 @@ namespace Honey.Commands
 		{
 			// no logger needed..it needs 50-70ms
 
-			IPackageListRepository packageListRepository = new PackageListRepository(new HoneyInstallLocation());
+			IPackageListRepository packageListRepository = new PackageListRepository(new HoneyInstallLocation(), null);
 			IListController listController = new ListController(packageListRepository);
 
 			// limitOutput is more for programms, programms can easy add arguments, dont bother people to do that

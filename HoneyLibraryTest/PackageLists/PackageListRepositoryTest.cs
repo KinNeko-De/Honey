@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -6,11 +7,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using HoneyLibrary.PackageLists;
-using HoneyLibraryTest.PackageList.TestData;
+using HoneyLibraryTest.PackageLists.TestData;
 using NUnit.Framework;
 
-namespace HoneyLibraryTest.PackageList
+namespace HoneyLibraryTest.PackageLists
 {
+	/// <summary>
+	/// SystemUnderTest is defined as PackageListRepository, PackageList and PackageInfo
+	/// Tests with real files
+	/// </summary>
 	public class PackageListRepositoryTest
 	{
 		private string testPath;
@@ -29,9 +34,9 @@ namespace HoneyLibraryTest.PackageList
 		}
 
 		#region TestData
-		private PackageListRepository CreateSystemUnderTest()
+		private PackageListRepository CreateSystemUnderTest(IReadOnlyCollection<IPackageListMigration> packageListMigrations = null)
 		{
-			return new PackageListRepository(new PathInstallLocation(testPath));
+			return new PackageListRepository(new PathInstallLocation(testPath), packageListMigrations);
 		}
 
 		private void CreatePackageList(string content)
@@ -81,6 +86,36 @@ namespace HoneyLibraryTest.PackageList
 
 			return package;
 		}
+
+		private class AddVersionAttributeIfNotExists : IPackageListMigration
+		{
+			public void Migrate(XDocument packageList)
+			{
+				string packageListVersion = GetPackageListVersion(packageList);
+
+				switch (packageListVersion)
+				{
+					case null:
+						// if the version attribute is not set it will be added
+						packageList.Root.SetAttributeValue(PackageList.XmlRootVersionAttribute, PackageList.currentVersion);
+						break;
+					default:
+						break;
+				}
+			}
+
+			private static string GetPackageListVersion(XDocument packageList)
+			{
+				var versionAttribute = packageList.Root.Attribute(PackageList.XmlRootVersionAttribute);
+
+				if (versionAttribute == null)
+				{
+					return null;
+				}
+
+				return versionAttribute.Value;
+			}
+		}
 		#endregion TestData
 
 		#region GetPackageInfo GetSinglePackageInfo
@@ -112,7 +147,7 @@ namespace HoneyLibraryTest.PackageList
 			CreatePackageList(packages);
 
 			var sut = CreateSystemUnderTest();
-			var packageInfo = sut.GetSinglePackageInfo(package.PackageId);
+			var packageInfo = sut.GetSinglePackageInfo(package.PackageId, ListMode.LimitOutput);
 
 			Assert.That(packageInfo, Is.Not.Null);
 			Assert.That(packageInfo.PackageId, Is.EqualTo(package.PackageId));
@@ -904,7 +939,7 @@ namespace HoneyLibraryTest.PackageList
 		{
 			var expectedVersion = "1.0";
 
-			var sut = CreateSystemUnderTest();
+			var sut = CreateSystemUnderTest(new[] { new AddVersionAttributeIfNotExists() });
 		
 			var previous = new PackagesBuilder().SetPackagesVersion(string.Empty).Build();
 			CreatePackageList(previous);
@@ -922,7 +957,7 @@ namespace HoneyLibraryTest.PackageList
 		{
 			var expectedVersion = "myversion";
 
-			var sut = CreateSystemUnderTest();
+			var sut = CreateSystemUnderTest(new[] { new AddVersionAttributeIfNotExists() });
 
 			var previous = new PackagesBuilder().SetPackagesVersion(expectedVersion).Build();
 			CreatePackageList(previous);
@@ -940,7 +975,7 @@ namespace HoneyLibraryTest.PackageList
 		{
 			var expectedVersion = "1.0";
 
-			var sut = CreateSystemUnderTest();
+			var sut = CreateSystemUnderTest(new[] { new AddVersionAttributeIfNotExists() });
 
 			var previous = new PackagesBuilder().SetPackagesVersion(string.Empty).Build();
 			CreatePackageList(previous);
@@ -958,7 +993,7 @@ namespace HoneyLibraryTest.PackageList
 		{
 			var expectedVersion = "myversion";
 
-			var sut = CreateSystemUnderTest();
+			var sut = CreateSystemUnderTest(new[] { new AddVersionAttributeIfNotExists() });
 
 			var previous = new PackagesBuilder().SetPackagesVersion(expectedVersion).Build();
 			CreatePackageList(previous);
@@ -977,7 +1012,7 @@ namespace HoneyLibraryTest.PackageList
 		{
 			var expectedVersion = "1.0";
 
-			var sut = CreateSystemUnderTest();
+			var sut = CreateSystemUnderTest(new[] { new AddVersionAttributeIfNotExists() });
 
 			var previous = new PackagesBuilder().SetPackagesVersion(string.Empty).Build();
 			CreatePackageList(previous);
@@ -996,7 +1031,7 @@ namespace HoneyLibraryTest.PackageList
 		{
 			var expectedVersion = "myversion";
 
-			var sut = CreateSystemUnderTest();
+			var sut = CreateSystemUnderTest(new[] { new AddVersionAttributeIfNotExists() });
 
 			var previous = new PackagesBuilder().SetPackagesVersion(expectedVersion).Build();
 			CreatePackageList(previous);

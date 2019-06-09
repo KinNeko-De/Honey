@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace HoneyLibraryTest.PackageList.TestData
+namespace HoneyLibraryTest.PackageLists.TestData
 {
 	internal class PackageBuilder
 	{
