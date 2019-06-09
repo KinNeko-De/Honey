@@ -1,7 +1,6 @@
 ﻿using HoneyLibrary.Controller;
 using HoneyLibrary.PackageLists;
 using MyApplicationExample;
-using log4net;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +17,7 @@ namespace Honey.Commands
 
 		public void Execute(string[] args)
 		{
-			// no logger needed..it needs 50-70ms
+			// no logger needed
 
 			IPackageListRepository packageListRepository = new PackageListRepository(new HoneyInstallLocation(), null);
 			IListController listController = new ListController(packageListRepository);
@@ -49,7 +48,8 @@ namespace Honey.Commands
 {nameof(packageInfo.LockedByAction)}: {packageInfo.LockedByAction}
 {nameof(packageInfo.LockedByProcess)}: {packageInfo.LockedByProcess}
 {nameof(packageInfo.Created)}: {packageInfo.Created}
-{nameof(packageInfo.LastUpdated)}: {packageInfo.LastUpdated}";
+{nameof(packageInfo.LastUpdated)}: {packageInfo.LastUpdated}
+";
 						}
 
 						break;

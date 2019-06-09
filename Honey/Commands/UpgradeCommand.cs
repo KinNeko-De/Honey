@@ -4,7 +4,6 @@ using HoneyLibrary.PackageDeployment;
 using HoneyLibrary.PackageLists;
 using HoneyLibrary.PackageRepositories;
 using HoneyLibrary.PackageSources;
-using log4net;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -19,13 +18,6 @@ namespace Honey.Commands
     {
         public void Execute(string[] args)
         {
-			Stopwatch stopwatch = new Stopwatch();
-			stopwatch.Restart();
-			ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-			log.Info("It just works");
-			stopwatch.Stop();
-			Console.WriteLine($"logger and logging 1 message (file and console) needs {stopwatch.ElapsedMilliseconds} ms.");
-
 			string packageId;
 			Version packageVersion;
 			string packageSource;

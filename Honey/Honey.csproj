@@ -65,9 +65,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\HoneyLibrary\HoneyLibrary.csproj">
       <Project>{5c396930-f48e-4d92-96e2-5cd389925ded}</Project>
       <Name>HoneyLibrary</Name>
@@ -92,11 +89,6 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="log4net">
-      <Version>2.0.8</Version>
-    </PackageReference>
   </ItemGroup>
   <ItemGroup>
     <Content Include="License.txt" />
