@@ -32,7 +32,7 @@ namespace HoneyLibrary.PackageLists
 
 		internal static PackageList Load(FileStream fileStream, IEnumerable<IPackageListMigration> packageListMigrations)
 		{
-			XDocument packageList = XDocument.Load(fileStream, LoadOptions.PreserveWhitespace);
+			XDocument packageList = XDocument.Load(fileStream);
 
 			MigratePackagList(packageList, packageListMigrations);
 
