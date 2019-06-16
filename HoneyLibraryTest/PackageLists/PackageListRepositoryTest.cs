@@ -159,6 +159,28 @@ namespace HoneyLibraryTest.PackageLists
 		}
 
 		[Test]
+		public void GetSinglePackageInfo_CaseInsensitive()
+		{
+			var nameInXml = "mYtESTpaCKage";
+			var searchId = "myTestPackage";
+
+			var package = CreateLockedTestPackage(inputPackageId: nameInXml);
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			var packageInfo = sut.GetSinglePackageInfo(searchId, ListMode.LimitOutput);
+
+			Assert.That(packageInfo, Is.Not.Null);
+			Assert.That(packageInfo.PackageId, Is.EqualTo(nameInXml));
+			Assert.That(packageInfo.PackageVersion, Is.EqualTo(package.PackageVersion));
+			Assert.That(packageInfo.LockedByAction, Is.Null);
+			Assert.That(packageInfo.LockedByProcess, Is.Null);
+			Assert.That(packageInfo.Created, Is.Null);
+			Assert.That(packageInfo.LastUpdated, Is.Null);
+		}
+
+		[Test]
 		public void GetPackageInfo_PackageListExists_ListModeLimitOutput()
 		{
 			ListMode listMode = ListMode.LimitOutput;
@@ -292,6 +314,31 @@ namespace HoneyLibraryTest.PackageLists
 
 			var sut = CreateSystemUnderTest();
 			var packageInfos = sut.GetPackageInfo(searchString, ListMode.LimitOutput, matchMode);
+
+			Assert.That(packageInfos, Is.Not.Null);
+			Assert.That(packageInfos.Count, Is.EqualTo(1));
+			var packageInfo = packageInfos.ElementAt(0);
+			Assert.That(packageInfo.PackageId, Is.EqualTo(package.PackageId));
+			Assert.That(packageInfo.PackageVersion, Is.EqualTo(package.PackageVersion));
+			Assert.That(packageInfo.LockedByAction, Is.Null);
+			Assert.That(packageInfo.LockedByProcess, Is.Null);
+			Assert.That(packageInfo.Created, Is.Null);
+			Assert.That(packageInfo.LastUpdated, Is.Null);
+		}
+
+		[Test]
+		public void GetPackageInfo_MatchModeIdExact_CaseInsensitive()
+		{
+			MatchMode matchMode = MatchMode.IdExact;
+			var nameInXml = "mYtESTpaCKage";
+			var searchId = "myTestPackage";
+
+			var package = CreateLockedTestPackage(inputPackageId: nameInXml);
+			var packages = new PackagesBuilder().AddPackage(package).Build();
+			CreatePackageList(packages);
+
+			var sut = CreateSystemUnderTest();
+			var packageInfos = sut.GetPackageInfo(searchId, ListMode.LimitOutput, matchMode);
 
 			Assert.That(packageInfos, Is.Not.Null);
 			Assert.That(packageInfos.Count, Is.EqualTo(1));

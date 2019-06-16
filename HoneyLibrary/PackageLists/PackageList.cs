@@ -131,10 +131,10 @@ namespace HoneyLibrary.PackageLists
 					matchFuction = new Func<string, bool>((xmlPackageId) => true);
 					break;
 				case MatchMode.IdExact:
-					matchFuction = new Func<string, bool>((xmlPackageId) => xmlPackageId == packageId);
+					matchFuction = new Func<string, bool>((xmlPackageId) => xmlPackageId.Equals(packageId, StringComparison.OrdinalIgnoreCase));
 					break;
 				case MatchMode.IdContains:
-					matchFuction = new Func<string, bool>((xmlPackageId) => xmlPackageId.IndexOf(packageId, StringComparison.InvariantCultureIgnoreCase) >= 0);
+					matchFuction = new Func<string, bool>((xmlPackageId) => xmlPackageId.IndexOf(packageId, StringComparison.OrdinalIgnoreCase) >= 0);
 					break;
 				default:
 					throw new InvalidEnumArgumentException(nameof(matchMode), (int)matchMode, typeof(MatchMode));

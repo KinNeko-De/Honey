@@ -131,7 +131,7 @@ namespace HoneyLibrary.PackageLists
 
 		private void WriteToPackageList(Func<FileStream> packageListOpenStream, Action<PackageList> actionToPerformOnPackageList)
 		{
-			FileStream fileStream = null;
+			FileStream fileStream;
 			bool fileExists = true;
 			try
 			{
