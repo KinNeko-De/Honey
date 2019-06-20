@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 using System.Xml.Linq;
 using HoneyLibrary.PackageLists;
 using HoneyLibraryTest.PackageLists.TestData;
@@ -414,6 +415,23 @@ namespace HoneyLibraryTest.PackageLists
 			var sut = CreateSystemUnderTest();
 			var exception = Assert.Throws<InvalidOperationException>(() => sut.GetSinglePackageInfo(firstPackageId));
 			StringAssert.Contains(firstPackageId, exception.Message);
+		}
+
+		[Test]
+		public void GetSinglePackageInfo_PackageListIsCorrupted_ShouldNotDeleted()
+		{
+			var brokenList = "<Packages></Packages";
+			File.WriteAllText(TestPackageListFileName(), brokenList);
+
+			var sut = CreateSystemUnderTest();
+
+			var exception = Assert.Throws<InvalidOperationException>(() => sut.GetPackageInfo(string.Empty, ListMode.Full, MatchMode.All));
+
+			Assert.That(exception.Message, Contains.Substring(TestPackageListFileName()));
+			Assert.That(exception.InnerException, Is.TypeOf<XmlException>());
+			File.Exists(TestPackageListFileName());
+			var content = File.ReadAllText(TestPackageListFileName());
+			Assert.That(content, Is.EqualTo(brokenList));
 		}
 
 		/// <summary>

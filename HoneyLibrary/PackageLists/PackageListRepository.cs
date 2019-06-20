@@ -76,7 +76,7 @@ namespace HoneyLibrary.PackageLists
 			}
 			catch (Exception e)
 			{
-				throw new InvalidOperationException($"Reading of package list failed: {e.Message}", e);
+				throw new InvalidOperationException($"Reading of package list from '{fileStream.Name}' failed: {e.Message}", e);
 			}
 
 			return packageList;
