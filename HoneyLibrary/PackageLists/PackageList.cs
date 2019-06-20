@@ -23,7 +23,7 @@ namespace HoneyLibrary.PackageLists
 		internal const string XmlLockedByProcess = "LockedByProcess";
 		internal const string currentVersion = "1.0";
 
-		private XDocument xpackageList;
+		private readonly XDocument xpackageList;
 
 		public PackageList(XDocument xpackageList)
 		{

@@ -12,8 +12,8 @@ namespace ZipArchivExtensions
 {
     public class ParallelReadableZipArchive : IDisposable
     {
-        private ConcurrentQueue<ZipArchive> zipArchiveReaders = new ConcurrentQueue<ZipArchive>();
-        private string zipArchivePathAndFileName;
+        private readonly ConcurrentQueue<ZipArchive> zipArchiveReaders = new ConcurrentQueue<ZipArchive>();
+        private readonly string zipArchivePathAndFileName;
 
         public ParallelReadableZipArchive(string zipArchivePathAndFileName)
         {
@@ -23,14 +23,12 @@ namespace ZipArchivExtensions
 
         internal ParallelReadableZipArchiveReader GetFreeZipArchiveReader()
         {
-            ZipArchive freeZipArchiveReader;
+			if (!zipArchiveReaders.TryDequeue(out ZipArchive freeZipArchiveReader))
+			{
+				freeZipArchiveReader = CreateNewZipArchiveReader(zipArchivePathAndFileName);
+			}
 
-            if(!zipArchiveReaders.TryDequeue(out freeZipArchiveReader))
-            {
-                freeZipArchiveReader = CreateNewZipArchiveReader(zipArchivePathAndFileName);
-            }
-
-            return new ParallelReadableZipArchiveReader(this, freeZipArchiveReader);
+			return new ParallelReadableZipArchiveReader(this, freeZipArchiveReader);
         }
 
         internal void ReturnZipArchiveReader(ZipArchive zipArchive)

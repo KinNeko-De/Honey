@@ -16,21 +16,25 @@
     <DefineConstants>Debug</DefineConstants>
     <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
     <SuppressValidation>True</SuppressValidation>
+    <SuppressIces>ICE40;ICE61</SuppressIces>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
+    <SuppressIces>ICE40;ICE61</SuppressIces>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Honey.wxs" />
     <Compile Include="Product.wxs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="packages.config" />
+    <Content Include="RemovePdbs.xslt" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\HoneyLibrary\HoneyLibrary.csproj">
       <Name>HoneyLibrary</Name>
-      <Project>{5c396930-f48e-4d92-96e2-5cd389925ded}</Project>
+      <Project>{449c7a8b-2eeb-4a2d-94e8-ba114da252c2}</Project>
       <Private>True</Private>
       <DoNotHarvest>True</DoNotHarvest>
       <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
@@ -38,7 +42,7 @@
     </ProjectReference>
     <ProjectReference Include="..\Honey\Honey.csproj">
       <Name>Honey</Name>
-      <Project>{ae19fec3-43ee-41da-af0f-98c4c40277f0}</Project>
+      <Project>{51a31358-5499-4743-a8da-1c707de9695c}</Project>
       <Private>True</Private>
       <DoNotHarvest>True</DoNotHarvest>
       <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
@@ -53,6 +57,14 @@
   <Import Project="$(WixTargetsPath)" Condition=" Exists('$(WixTargetsPath)') " />
   <Target Name="EnsureWixToolsetInstalled" Condition=" !Exists('$(WixTargetsPath)') ">
     <Error Text="The WiX Toolset v4 build tools must be installed to build this project. To download the WiX Toolset v4, see http://wixtoolset.org/releases/" />
+  </Target>
+  <Target Name="BeforeBuild">
+    <Exec Command="dotnet publish ..\Honey\Honey.csproj -c $(Configuration) -r win10-x64 --self-contained false" />
+    <PropertyGroup>
+      <LinkerBaseInputPaths>..\Honey\bin\$(Configuration)\netcoreapp2.2\win10-x64\publish</LinkerBaseInputPaths>
+      <DefineConstants>BasePath=..\Honey\bin\$(Configuration)\netcoreapp2.2\win10-x64\publish</DefineConstants>
+    </PropertyGroup>
+    <HeatDirectory OutputFile="Honey.wxs" DirectoryRefId="INSTALLFOLDER" ComponentGroupName="Honey_Project" SuppressCom="true" Directory="..\Honey\bin\$(Configuration)\netcoreapp2.2\win10-x64\publish" SuppressFragments="true" SuppressRegistry="true" SuppressRootDirectory="true" AutoGenerateGuids="false" GenerateGuidsNow="true" ToolPath="$(WixToolPath)" PreprocessorVariable="var.BasePath" Transforms="RemovePdbs.xslt" />
   </Target>
   <!--
 	To modify your build process, add your task inside one of the targets below and uncomment it.

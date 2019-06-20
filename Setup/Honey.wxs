@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Fragment>
+        <DirectoryRef Id="INSTALLFOLDER">
+            <Component Id="cmp1B8C78FA875BFCF6B94FBF43EB7069D9" Guid="{02893481-7CC2-4DDA-A041-6892FACC0FC7}">
+                <File Id="filC5F9694A0CC6E906A0A391FCC3AB049A" KeyPath="yes" Source="$(var.BasePath)\Honey.deps.json" />
+            </Component>
+            <Component Id="cmpE2D6377A9D71AF88AB418429979D0BE7" Guid="{9753B533-8EC3-4614-B5F0-63C896E75B8A}">
+                <File Id="filFB9DAE34EF2CA6A3AB95964417AB63F5" KeyPath="yes" Source="$(var.BasePath)\Honey.dll" />
+            </Component>
+            <Component Id="cmp051E04CC894E3B9EE204EF6D8B369F6D" Guid="{D14959FF-AA6E-4ED8-BF58-3C5183B5B7DA}">
+                <File Id="fil8F640DD005F227C4C6E7B87B1F2A5CEF" KeyPath="yes" Source="$(var.BasePath)\Honey.exe" />
+            </Component>
+            
+            <Component Id="cmp8FAA313F1D11D2285CC89DE604E1D7BF" Guid="{A4C29C0C-4302-4F11-A08F-1ED38C1993BB}">
+                <File Id="fil6C28F522D0E77EA5523B19484B7AFC72" KeyPath="yes" Source="$(var.BasePath)\Honey.runtimeconfig.json" />
+            </Component>
+            <Component Id="cmp2F24EECC3216FC0C31644B9EAB19815D" Guid="{1EBF400C-1FF2-4A85-A70C-A73E49C5DB30}">
+                <File Id="filE743D7E40503F8A4AE265E6E88A12CF9" KeyPath="yes" Source="$(var.BasePath)\HoneyLibrary.dll" />
+            </Component>
+            
+            <Component Id="cmp6969766ACE57C73B140C78C9B0DD3B75" Guid="{79B25060-F391-4E7C-BCC1-D1B2BB1F2515}">
+                <File Id="fil9C77F060F0CCA9849A6167F6CD12BDBB" KeyPath="yes" Source="$(var.BasePath)\MyApplicationExample.dll" />
+            </Component>
+            
+            <Component Id="cmp42E3C9D103E1A4854E64F6648F4EB7CA" Guid="{F07BAA23-10FC-4B11-A8D3-D64FCA5482B8}">
+                <File Id="fil2D01E29059182FA1AD2851267DC703AD" KeyPath="yes" Source="$(var.BasePath)\ZipArchiveExtensions.dll" />
+            </Component>
+            
+        </DirectoryRef>
+    </Fragment>
+    <Fragment>
+        <ComponentGroup Id="Honey_Project">
+            <ComponentRef Id="cmp1B8C78FA875BFCF6B94FBF43EB7069D9" />
+            <ComponentRef Id="cmpE2D6377A9D71AF88AB418429979D0BE7" />
+            <ComponentRef Id="cmp051E04CC894E3B9EE204EF6D8B369F6D" />
+            
+            <ComponentRef Id="cmp8FAA313F1D11D2285CC89DE604E1D7BF" />
+            <ComponentRef Id="cmp2F24EECC3216FC0C31644B9EAB19815D" />
+            
+            <ComponentRef Id="cmp6969766ACE57C73B140C78C9B0DD3B75" />
+            
+            <ComponentRef Id="cmp42E3C9D103E1A4854E64F6648F4EB7CA" />
+            
+        </ComponentGroup>
+    </Fragment>
+</Wix>

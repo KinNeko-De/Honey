@@ -11,23 +11,21 @@ namespace MyApplicationExample.Examples.VersionMigration
 {
 	public class FileWithVersionInNameRemoveAction : IDeploymentComponent
 	{
-		private readonly ParallelReadableZipArchiveEntry entry;
 		private readonly string targetPath;
 		private readonly Version version;
 
 		public FileWithVersionInNameRemoveAction(ParallelReadableZipArchiveEntry zipArchiveEntry, Version version, string targetPath)
 		{
-			entry = zipArchiveEntry;
 			this.targetPath = targetPath;
 			this.version = version;
 		}
 
 		public void Upgrade()
 		{
-			RemoveEntry(entry, targetPath);
+			RemoveEntry(targetPath);
 		}
 
-		private void RemoveEntry(ParallelReadableZipArchiveEntry entry, string targetPath)
+		private void RemoveEntry(string targetPath)
 		{
 			var targetDirectory = Path.GetDirectoryName(targetPath);
 			var targetFile = Path.GetFileNameWithoutExtension(targetPath) + version;

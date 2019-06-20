@@ -21,6 +21,7 @@
 		<MediaTemplate EmbedCab="yes"/>
 
 		<Feature Id="Honey" Title="Honey" Level="1">
+      <ComponentGroupRef Id="Honey_Project" />
 			<ComponentGroupRef Id="ProductComponents" />
 		</Feature>
 	</Product>
@@ -28,7 +29,7 @@
 	<Fragment>
 		<Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="CommonAppDataFolder">
-          <Directory Id="HoneyFolder" Name="Honey">
+          <Directory Id="INSTALLFOLDER" Name="Honey">
             <Directory Id="HoneyLibFolder" Name="lib"></Directory>
             <Directory Id="HoneyInstallFolder" Name="ins"></Directory>
           </Directory>
@@ -37,20 +38,19 @@
 	</Fragment>
 
 	<Fragment>
-		<ComponentGroup Id="ProductComponents" Directory="HoneyFolder">
+		<ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Component Id="CreateEmptyHoneyFolder" Guid="{A75A3BD7-FF10-4FD5-B29A-1258BB4FF177}" KeyPath="yes">
+        <CreateFolder Directory="INSTALLFOLDER"/>
+      </Component>
+      <Component Id="AddHoneyToEnviromentPath" Guid="{A75A3BD7-FF10-4FD5-B29A-1258BB4FF176}" KeyPath="yes">
+        <CreateFolder Directory="INSTALLFOLDER"/>
+        <Environment Id="SetEnvironment" Action="set" Name="Path" Part="last" Permanent="no" System="yes" Value="[INSTALLFOLDER]"/>
+      </Component>
       <Component Id="CreateEmptyHoneyLibFolder" Guid="{A75A3BD7-FF10-4FD5-B29A-1258BB4FF179}" KeyPath="yes">
         <CreateFolder Directory="HoneyLibFolder"/>
       </Component>
       <Component Id="CreateEmptyHoneyInstallFolder" Guid="{A75A3BD7-FF10-4FD5-B29A-1258BB4FF178}" KeyPath="yes">
         <CreateFolder Directory="HoneyInstallFolder"/>
-      </Component>
-      
-      <Component Id="ProductComponent" Guid="{E62D6451-D0A3-4B09-AF1C-8415AEBE0949}">
-        <File Source="$(var.Honey.TargetPath)" Id="HoneyExecutableFile" KeyPath="yes" />
-        <File Source="$(var.Honey.TargetDir)ZipArchiveExtensions.dll" Id="ZipArchiveExtensions"/>
-        <File Source="$(var.Honey.TargetDir)MyApplicationExample.dll" Id="MyApplicationExample"/>
-        <File Source="$(var.HoneyLibrary.TargetPath)" Id="HoneyLibraryFile" />
-        <Environment Id="SetEnvironment" Action="set" Name="Path" Part="last" Permanent="no" System="yes" Value="[HoneyFolder]"/>
       </Component>
 		</ComponentGroup>
 	</Fragment>

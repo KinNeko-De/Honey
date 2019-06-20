@@ -3,13 +3,11 @@ using System.Diagnostics;
 using System.IO;
 using MyApplicationExample;
 using HoneyLibrary.PackageDeployment;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NUnit.Framework;
 using Assert = NUnit.Framework.Assert;
 
 namespace MyApplicationExampleTest.Examples.PackageDeployment
 {
-    [TestClass]
     public class PackageDeploymentTest
     {
 		const string bigFilesPackages = "honeypackagefiles.1.0.0.nupkg";
@@ -93,16 +91,6 @@ namespace MyApplicationExampleTest.Examples.PackageDeployment
 
 			Assert.That(File.Exists(Path.Combine(targetPath, "dhbx2w3k.3tc")), Is.False);
 			Assert.That(File.Exists(Path.Combine(targetPath, "dhbx2w3k.4tc")), Is.True);
-		}
-
-		private void CleanUpDirectory(string directoryToCleanUp)
-		{
-			if (!directoryToCleanUp.StartsWith(Path.GetTempPath()))
-			{
-				throw new InvalidOperationException($"you dont want to delete {directoryToCleanUp}");
-			}
-
-			Directory.Delete(directoryToCleanUp, true);
 		}
 	}
 }
