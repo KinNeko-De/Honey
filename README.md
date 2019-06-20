@@ -1,6 +1,6 @@
 # Honey
 package manager based on nuget packages.
-It only works on windows.
+It was build using .NET Core, but not tested outside of windows
 
 ## Use case
 Honey is package manager only designed for one use case:
