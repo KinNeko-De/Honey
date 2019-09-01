@@ -28,13 +28,13 @@ namespace Honey.Commands
 				case "--filepath":
 					packageSource = Path.GetDirectoryName(args[2]);
 					string nugetPackage = Path.GetFileNameWithoutExtension(args[2]);
-					var match = System.Text.RegularExpressions.Regex.Match(nugetPackage, @"(.*)\.([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)");
+					var match = System.Text.RegularExpressions.Regex.Match(nugetPackage, @"(.*)\.([0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)*)");
 					packageId = match.Groups[1].Value;
 					packageVersion = new Version(match.Groups[2].Value);
 
 					try
 					{
-						applicationInstallationDir = args[4];
+						applicationInstallationDir = args[3];
 					}
 					catch (IndexOutOfRangeException e)
 					{

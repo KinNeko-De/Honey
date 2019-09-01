@@ -9,6 +9,12 @@ namespace Honey
         {
             if (args == null) { throw new ArgumentNullException(nameof(args)); }
             ProgramExitCode exitCode = ProgramExitCode.Ok;
+
+			if(args == null)
+			{
+				throw new ArgumentNullException(nameof(args), "Provide at least one command.");
+			}
+
             try
             {
 				switch(args[0])
