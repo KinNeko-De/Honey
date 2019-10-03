@@ -2,28 +2,28 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
     <Fragment>
         <DirectoryRef Id="INSTALLFOLDER">
-            <Component Id="cmp1B8C78FA875BFCF6B94FBF43EB7069D9" Guid="{AFE27904-CB4A-492C-9781-2FE8544B49C1}">
+            <Component Id="cmp1B8C78FA875BFCF6B94FBF43EB7069D9" Guid="{528CC189-41BF-48E0-BBF1-7E1FD854C698}">
                 <File Id="filC5F9694A0CC6E906A0A391FCC3AB049A" KeyPath="yes" Source="$(var.BasePath)\Honey.deps.json" />
             </Component>
-            <Component Id="cmpE2D6377A9D71AF88AB418429979D0BE7" Guid="{595616A4-A8C7-4E7E-B555-EE3D9EA96BFC}">
+            <Component Id="cmpE2D6377A9D71AF88AB418429979D0BE7" Guid="{6A2D59EA-5019-484D-8AE2-27491E06C28D}">
                 <File Id="filFB9DAE34EF2CA6A3AB95964417AB63F5" KeyPath="yes" Source="$(var.BasePath)\Honey.dll" />
             </Component>
-            <Component Id="cmp051E04CC894E3B9EE204EF6D8B369F6D" Guid="{98B11B19-E3A3-4622-927E-CC01ECCB6EDE}">
+            <Component Id="cmp051E04CC894E3B9EE204EF6D8B369F6D" Guid="{872170F1-E929-43D4-92BB-A3451280EC2E}">
                 <File Id="fil8F640DD005F227C4C6E7B87B1F2A5CEF" KeyPath="yes" Source="$(var.BasePath)\Honey.exe" />
             </Component>
             
-            <Component Id="cmp8FAA313F1D11D2285CC89DE604E1D7BF" Guid="{09C5878F-EF2E-4053-A3D1-2252C0200614}">
+            <Component Id="cmp8FAA313F1D11D2285CC89DE604E1D7BF" Guid="{994CB4FC-AB22-442A-AC8D-FCF96E261395}">
                 <File Id="fil6C28F522D0E77EA5523B19484B7AFC72" KeyPath="yes" Source="$(var.BasePath)\Honey.runtimeconfig.json" />
             </Component>
-            <Component Id="cmp2F24EECC3216FC0C31644B9EAB19815D" Guid="{0E1F0D00-B43B-4F09-8E43-D668FCA23A1E}">
+            <Component Id="cmp2F24EECC3216FC0C31644B9EAB19815D" Guid="{76670944-9D6A-44A6-B932-1DF230E266A0}">
                 <File Id="filE743D7E40503F8A4AE265E6E88A12CF9" KeyPath="yes" Source="$(var.BasePath)\HoneyLibrary.dll" />
             </Component>
             
-            <Component Id="cmp6969766ACE57C73B140C78C9B0DD3B75" Guid="{F04636FA-A1EA-41C6-9DAA-87E5FDEA1A10}">
+            <Component Id="cmp6969766ACE57C73B140C78C9B0DD3B75" Guid="{ACE47B32-3F80-4BBE-A43C-1489176B26D7}">
                 <File Id="fil9C77F060F0CCA9849A6167F6CD12BDBB" KeyPath="yes" Source="$(var.BasePath)\MyApplicationExample.dll" />
             </Component>
             
-            <Component Id="cmp42E3C9D103E1A4854E64F6648F4EB7CA" Guid="{051E13F4-B9C3-4C71-BCDE-452A206E804A}">
+            <Component Id="cmp42E3C9D103E1A4854E64F6648F4EB7CA" Guid="{A38EA626-062F-483C-9E44-F7316785ADE0}">
                 <File Id="fil2D01E29059182FA1AD2851267DC703AD" KeyPath="yes" Source="$(var.BasePath)\ZipArchiveExtensions.dll" />
             </Component>
             
