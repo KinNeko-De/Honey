@@ -25,4 +25,5 @@ The update modus works best when you preserve 'lastWriteTime' of zip archive ent
 This was added in nuget (i think somewhere around version 4.6.0). if you use older versions of nuget to pack your package the updatemodus can not detect that it is the same file and will replace it. it will worked correctly but the performace is decreased.
 
 Not other methods that using lastWriteTime is supported because zipArchiveEntry only has this property. extracting the entry to get more detailed information is not fast enough.
+
 Update: With .Net Core there is a new property 'Crc32' which allows another updatemodus. i will implement this later
