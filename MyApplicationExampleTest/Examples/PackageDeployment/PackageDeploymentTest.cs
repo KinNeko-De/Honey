@@ -5,6 +5,7 @@ using MyApplicationExample;
 using HoneyLibrary.PackageDeployment;
 using NUnit.Framework;
 using Assert = NUnit.Framework.Assert;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MyApplicationExampleTest.Examples.PackageDeployment
 {
@@ -43,7 +44,7 @@ namespace MyApplicationExampleTest.Examples.PackageDeployment
 			EmbeddedResourceExtensions.CopyEmbeddedResource(namespaceForEmbbededResources, bigFilesPackages, sourcePath);
 
 			Stopwatch stopwatch = Stopwatch.StartNew();
-			newPackage.Upgrade(new DeploymentComponentFactory(new HoneyInstallLocation(), new PathInstallLocation(targetPath)), installedPackage);
+			newPackage.Upgrade(NullLogger.Instance, new DeploymentComponentFactory(new HoneyInstallLocation(), new PathInstallLocation(targetPath)), installedPackage);
             stopwatch.Stop();
             Console.WriteLine($"Install takes {stopwatch.ElapsedMilliseconds } ms.");
 
@@ -58,12 +59,12 @@ namespace MyApplicationExampleTest.Examples.PackageDeployment
 
 			EmbeddedResourceExtensions.CopyEmbeddedResource(namespaceForEmbbededResources, bigFilesPackages, sourcePath);
 
-			newPackage.Upgrade(new DeploymentComponentFactory(new HoneyInstallLocation(), new PathInstallLocation(targetPath)), installedPackage);
+			newPackage.Upgrade(NullLogger.Instance, new DeploymentComponentFactory(new HoneyInstallLocation(), new PathInstallLocation(targetPath)), installedPackage);
 			installedPackage = newPackage;
 
 			Console.WriteLine("Begin of performance calculation");
 			Stopwatch stopwatch = Stopwatch.StartNew();
-			newPackage.Upgrade(new DeploymentComponentFactory(new HoneyInstallLocation(), new PathInstallLocation(targetPath)), installedPackage);
+			newPackage.Upgrade(NullLogger.Instance, new DeploymentComponentFactory(new HoneyInstallLocation(), new PathInstallLocation(targetPath)), installedPackage);
 			stopwatch.Stop();
 			Console.WriteLine($"Upgrade with nothing has changed takes {stopwatch.ElapsedMilliseconds } ms.");
 
@@ -79,13 +80,13 @@ namespace MyApplicationExampleTest.Examples.PackageDeployment
 			EmbeddedResourceExtensions.CopyEmbeddedResource(namespaceForEmbbededResources, bigFilesPackages, sourcePath);
 			EmbeddedResourceExtensions.CopyEmbeddedResource(namespaceForEmbbededResources, bigFilesPackages2, sourcePath);
 
-			newPackage.Upgrade(new DeploymentComponentFactory(new HoneyInstallLocation(), new PathInstallLocation(targetPath)), installedPackage);
+			newPackage.Upgrade(NullLogger.Instance, new DeploymentComponentFactory(new HoneyInstallLocation(), new PathInstallLocation(targetPath)), installedPackage);
 			installedPackage = newPackage;
 
 			NugetPackage newPackage2 = new NugetPackage(Path.Combine(sourcePath, bigFilesPackages2));
 			Console.WriteLine("Begin of performance calculation");
 			Stopwatch stopwatch = Stopwatch.StartNew();
-			newPackage2.Upgrade(new DeploymentComponentFactory(new HoneyInstallLocation(), new PathInstallLocation(targetPath)), installedPackage);
+			newPackage2.Upgrade(NullLogger.Instance, new DeploymentComponentFactory(new HoneyInstallLocation(), new PathInstallLocation(targetPath)), installedPackage);
 			stopwatch.Stop();
 			Console.WriteLine($"Upgrade with one file removed and one added takes {stopwatch.ElapsedMilliseconds } ms.");
 

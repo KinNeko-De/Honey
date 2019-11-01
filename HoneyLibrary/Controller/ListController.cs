@@ -20,11 +20,7 @@ namespace HoneyLibrary.Controller
 
 		public IReadOnlyCollection<IPackageInfo> GetPackageInfo(string searchPattern, ListMode listMode, MatchMode matchMode)
 		{
-			Stopwatch stopwatch = new Stopwatch();
-			stopwatch.Restart();
 			var result = packageListRepository.GetPackageInfo(searchPattern, listMode, matchMode);
-			stopwatch.Stop();
-			Console.WriteLine($"Querying xml list needs {stopwatch.ElapsedMilliseconds} ms.");
 			return result;
 		}
 	}

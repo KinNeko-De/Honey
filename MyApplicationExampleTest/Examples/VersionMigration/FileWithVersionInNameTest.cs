@@ -7,6 +7,7 @@ using MyApplicationExample;
 using HoneyLibrary.PackageDeployment;
 using NUnit.Framework;
 using Assert = NUnit.Framework.Assert;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MyApplicationExampleTest.Examples.VersionMigration
 {
@@ -41,7 +42,7 @@ namespace MyApplicationExampleTest.Examples.VersionMigration
 
 				NugetPackage package1 = new NugetPackage($@"{Path.Combine(sourcePath, versionexamplePackage1)}");
 				Stopwatch stopwatch = Stopwatch.StartNew();
-				package1.Upgrade(new DeploymentComponentFactory(new HoneyInstallLocation(), new PathInstallLocation(targetPath)), null);
+				package1.Upgrade(NullLogger.Instance, new DeploymentComponentFactory(new HoneyInstallLocation(), new PathInstallLocation(targetPath)), null);
 				stopwatch.Stop();
 				Console.WriteLine($"Install takes {stopwatch.ElapsedMilliseconds } ms.");
 				var firstFileName = Path.Combine(targetPath, $"DeployedWithVersion{expectedVersion1}.txt");
@@ -53,7 +54,7 @@ namespace MyApplicationExampleTest.Examples.VersionMigration
 				string expectedVersion2 = "2.0";
 				NugetPackage package2 = new NugetPackage($@"{Path.Combine(sourcePath, versionexamplePackage2)}");
 				Stopwatch stopwatch2 = Stopwatch.StartNew();
-				package2.Upgrade(new DeploymentComponentFactory(new HoneyInstallLocation(), new PathInstallLocation(targetPath)), package1);
+				package2.Upgrade(NullLogger.Instance, new DeploymentComponentFactory(new HoneyInstallLocation(), new PathInstallLocation(targetPath)), package1);
 				stopwatch2.Stop();
 				Console.WriteLine($"Upgrade takes {stopwatch2.ElapsedMilliseconds } ms.");
 				var secondFileName = Path.Combine(targetPath, $"DeployedWithVersion{expectedVersion2}.txt");
@@ -83,7 +84,7 @@ namespace MyApplicationExampleTest.Examples.VersionMigration
 
 				NugetPackage package1 = new NugetPackage($@"{Path.Combine(sourcePath, versionexamplePackage1)}");
 				Stopwatch stopwatch = Stopwatch.StartNew();
-				package1.Upgrade(new DeploymentComponentFactory(new HoneyInstallLocation(), new PathInstallLocation(performanceInstallPath)), null);
+				package1.Upgrade(NullLogger.Instance, new DeploymentComponentFactory(new HoneyInstallLocation(), new PathInstallLocation(performanceInstallPath)), null);
 				stopwatch.Stop();
 				Console.WriteLine($"Install takes {stopwatch.ElapsedMilliseconds } ms.");
 				var firstFileName = Path.Combine(performanceInstallPath, $"DeployedWithVersion{expectedVersion1}.txt");
@@ -113,7 +114,7 @@ namespace MyApplicationExampleTest.Examples.VersionMigration
 				NugetPackage package1 = new NugetPackage($@"{Path.Combine(sourcePath, versionexamplePackage1)}");
 				NugetPackage package2 = new NugetPackage($@"{Path.Combine(sourcePath, versionexamplePackage2)}");
 				Stopwatch stopwatch2 = Stopwatch.StartNew();
-				package2.Upgrade(new DeploymentComponentFactory(new HoneyInstallLocation(), new PathInstallLocation(performanceInstallPath)), package1);
+				package2.Upgrade(NullLogger.Instance, new DeploymentComponentFactory(new HoneyInstallLocation(), new PathInstallLocation(performanceInstallPath)), package1);
 				stopwatch2.Stop();
 				Console.WriteLine($"Install takes {stopwatch2.ElapsedMilliseconds } ms.");
 				var secondFileName = Path.Combine(performanceInstallPath, $"DeployedWithVersion{expectedVersion2}.txt");

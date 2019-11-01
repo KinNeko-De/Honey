@@ -1,6 +1,8 @@
-﻿using HoneyLibrary.PackageDeployment;
+﻿using HoneyLibrary.Logging;
+using HoneyLibrary.PackageDeployment;
 using HoneyLibrary.PackageLists;
 using HoneyLibrary.PackageRepositories;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,21 +12,24 @@ using System.Threading.Tasks;
 
 namespace HoneyLibrary.Controller
 {
-    public class DeploymentController: IDeploymentController
-    {
-        private readonly IDeploymentComponentFactory deploymentComponentFactory;
-        private INugetPackageRepository nugetPackageRepository;
-        private readonly IPackageListRepository packageListRepository;
+	public class DeploymentController : IDeploymentController
+	{
+		private readonly ILogger logger;
+		private readonly IDeploymentComponentFactory deploymentComponentFactory;
+		private INugetPackageRepository nugetPackageRepository;
+		private readonly IPackageListRepository packageListRepository;
 
-        public DeploymentController(
-            IDeploymentComponentFactory deploymentComponentFactory,
-            INugetPackageRepository nugetPackageRepository,
-            IPackageListRepository packageListRepository)
-        {
-            this.deploymentComponentFactory = deploymentComponentFactory;
-            this.nugetPackageRepository = nugetPackageRepository;
-            this.packageListRepository = packageListRepository;
-        }
+		public DeploymentController(
+			ILogger logger,
+			IDeploymentComponentFactory deploymentComponentFactory,
+			INugetPackageRepository nugetPackageRepository,
+			IPackageListRepository packageListRepository)
+		{
+			this.logger = logger;
+			this.deploymentComponentFactory = deploymentComponentFactory;
+			this.nugetPackageRepository = nugetPackageRepository;
+			this.packageListRepository = packageListRepository;
+		}
 
 		/*
 		* In case of error during uprading return a modified nuget package
@@ -33,38 +38,51 @@ namespace HoneyLibrary.Controller
 		* but the deployment action must handle this!
 		*/
 		public void Upgrade(string packageId, Version packageVersion, string packageDownloadUri)
-        {
-            Stopwatch stopwatch = new Stopwatch();
+		{
+			var loggerstate = new Dictionary<string, object>()
+			{
+				{ nameof(packageId), packageId },
+				{ nameof(packageVersion), packageVersion },
+				{ nameof(packageDownloadUri), packageDownloadUri },
+			};
 
-			stopwatch.Restart();
-			packageListRepository.StartActionOnPackage(packageId, packageVersion);
-			stopwatch.Stop();
-			Console.WriteLine($"starting action on xml list needs {stopwatch.ElapsedMilliseconds} ms.");
+			logger.LogInformation("Upgrading package '{0}' to version '{1}'", packageId, packageVersion);
 
-			stopwatch.Restart();
-            NugetPackage upgradePackage = nugetPackageRepository.InstallPackage(packageId, packageVersion, packageDownloadUri);
-            stopwatch.Stop();
-            Console.WriteLine($"installing new package needs {stopwatch.ElapsedMilliseconds} ms.");
+			using (logger.BeginScope(loggerstate))
+			{
+				PerformanceLogger performanceLogger = new PerformanceLogger(logger);
 
-            stopwatch.Restart();
-            NugetPackage installedPackage = nugetPackageRepository.ReadInstalledPackage(packageId);
-            stopwatch.Stop();
-            Console.WriteLine($"reading installed package needs {stopwatch.ElapsedMilliseconds} ms.");
+				logger.LogInformation("Starting action on package xml list.");
+				performanceLogger.Restart("Starting action on package xml list.");
+				packageListRepository.StartActionOnPackage(packageId, packageVersion);
+				performanceLogger.Stop();
 
-            stopwatch.Restart();
-            upgradePackage.Upgrade(deploymentComponentFactory, installedPackage);
-            stopwatch.Stop();
-            Console.WriteLine($"upgrade needs {stopwatch.ElapsedMilliseconds} ms.");
+				logger.LogInformation("Installing new package.");
+				performanceLogger.Restart("Installing new package.");
+				NugetPackage upgradePackage = nugetPackageRepository.InstallPackage(packageId, packageVersion, packageDownloadUri);
+				performanceLogger.Stop();
 
-            stopwatch.Restart();
-            nugetPackageRepository.ArchivePackage(packageId);
-            stopwatch.Stop();
-            Console.WriteLine($"archive needs {stopwatch.ElapsedMilliseconds} ms.");
+				logger.LogInformation("Reading installed package.");
+				performanceLogger.Restart("Reading installed package.");
+				NugetPackage installedPackage = nugetPackageRepository.ReadInstalledPackage(packageId);
+				logger.LogInformation("Installed Package: {0}", installedPackage?.PackageIdentifier);
+				performanceLogger.Stop();
 
-            stopwatch.Restart();
-            packageListRepository.EndActionOnPackage(packageId, packageVersion);
-            stopwatch.Stop();
-            Console.WriteLine($"finishing action on xml list needs {stopwatch.ElapsedMilliseconds} ms.");
-        }
-    }
+				logger.LogInformation("Upgrading package.");
+				performanceLogger.Restart("Upgrading package.");
+				upgradePackage.Upgrade(logger, deploymentComponentFactory, installedPackage);
+				performanceLogger.Stop();
+
+				logger.LogInformation("Archiving package.");
+				performanceLogger.Restart("Archiving package.");
+				nugetPackageRepository.ArchivePackage(packageId);
+				performanceLogger.Stop();
+
+				logger.LogInformation("Ending action on package xml list.");
+				performanceLogger.Restart("Ending action on package xml list.");
+				packageListRepository.EndActionOnPackage(packageId, packageVersion);
+				performanceLogger.Stop();
+			}
+		}
+	}
 }
