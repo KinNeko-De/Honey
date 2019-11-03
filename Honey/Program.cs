@@ -75,6 +75,7 @@ namespace Honey
 						.SetMinimumLevel(LogLevel.Debug) // does not work for serilog
 						.AddSerilog(dispose: true)
 						.AddConsole()
+						.AddDebug()
 						.AddFilter("Microsoft", LogLevel.Warning) // does not work for serilog
 						.AddFilter("System", LogLevel.Warning) // does not work for serilog
 						.AddFilter("Honey", LogLevel.Debug) // does not work for serilog
