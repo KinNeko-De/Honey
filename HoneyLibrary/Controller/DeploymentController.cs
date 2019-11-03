@@ -39,7 +39,7 @@ namespace HoneyLibrary.Controller
 		*/
 		public void Upgrade(string packageId, Version packageVersion, string packageDownloadUri)
 		{
-			var loggerstate = new Dictionary<string, object>()
+			var loggerstate = new LoggerState
 			{
 				{ nameof(packageId), packageId },
 				{ nameof(packageVersion), packageVersion },
@@ -82,6 +82,14 @@ namespace HoneyLibrary.Controller
 				performanceLogger.Restart("Ending action on package xml list.");
 				packageListRepository.EndActionOnPackage(packageId, packageVersion);
 				performanceLogger.Stop();
+			}
+		}
+
+		private class LoggerState : Dictionary<string, object>
+		{
+			public override string ToString()
+			{
+				return string.Join(",", this);
 			}
 		}
 	}

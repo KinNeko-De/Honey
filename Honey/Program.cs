@@ -54,7 +54,7 @@ namespace Honey
 
 		private static Microsoft.Extensions.Logging.ILogger EnsureLoggerExists(Microsoft.Extensions.Logging.ILogger logger)
 		{
-			if(logger == null)
+			if (logger == null)
 			{
 				HoneyInstallLocation honeyInstallLocation = new HoneyInstallLocation();
 				string logFile = Path.Combine(honeyInstallLocation.GetInstallLocation(), "honey.log");
