@@ -1,3 +1,5 @@
+**Honey is concept, proof of concept, philosophy but also inspiration**
+
 # Honey
 package manager based on nuget packages.
 It was build using .NET Core, but not tested outside of windows
