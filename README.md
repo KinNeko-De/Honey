@@ -1,3 +1,5 @@
+**Archived because outdated by docker. Do not even try the concept for new projects.**
+
 **Honey is concept, proof of concept, philosophy but also inspiration**
 
 # Honey
